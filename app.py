@@ -3,9 +3,9 @@ import base64
 import os
 from dotenv import load_dotenv
 from roast_widget_streamlit import render_roast_widget
-from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card
+from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card, social_card, streak_card, repo_card
 from utils import github_api
-from themes.styles import THEMES
+from themes.styles import THEMES, get_all_themes, CUSTOM_THEMES
 from generators.visual_elements import (
     emoji_element,
     gif_element,
@@ -98,7 +98,6 @@ with st.sidebar:
         if custom_text != get_col("text_color"): custom_colors["text_color"] = custom_text
         if custom_border != get_col("border_color"): custom_colors["border_color"] = custom_border
 
-<<<<<<< HEAD
     # Custom Theme Creator Section
     with st.expander("🎨 Custom Theme Creator", expanded=False):
         st.caption("Create and save your own custom theme")
@@ -107,8 +106,43 @@ with st.sidebar:
         if "custom_theme_colors" not in st.session_state:
             st.session_state.custom_theme_colors = {
                 "bg_color": "#0d1117",
+                "border_color": "#30363d",
+                "title_color": "#58a6ff",
+                "text_color": "#c9d1d9",
+                "icon_color": "#8b949e"
+            }
+        
+        # Color pickers for custom theme
+        custom_theme_name = st.text_input("Theme Name", value="My Custom Theme")
+        ct_bg = st.color_picker("Background", value=st.session_state.custom_theme_colors["bg_color"], key="ct_bg")
+        ct_border = st.color_picker("Border", value=st.session_state.custom_theme_colors["border_color"], key="ct_border")
+        ct_title = st.color_picker("Title", value=st.session_state.custom_theme_colors["title_color"], key="ct_title")
+        ct_text = st.color_picker("Text", value=st.session_state.custom_theme_colors["text_color"], key="ct_text")
+        ct_icon = st.color_picker("Icon", value=st.session_state.custom_theme_colors["icon_color"], key="ct_icon")
+        
+        if st.button("Save Custom Theme"):
+            from themes.styles import save_custom_theme
+            theme_data = {
+                "bg_color": ct_bg,
+                "border_color": ct_border,
+                "title_color": ct_title,
+                "text_color": ct_text,
+                "icon_color": ct_icon,
+                "font_family": "Segoe UI, Ubuntu, Sans-Serif",
+                "title_font_size": 20,
+                "text_font_size": 14
+            }
+            save_custom_theme(custom_theme_name, theme_data)
+            st.success(f"Theme '{custom_theme_name}' saved! Refresh to see it in the theme list.")
+
+    # GitHub Token for API access
+    st.header("3. API Access (Optional)")
+    github_token = st.text_input("GitHub Token", type="password", value=os.getenv("GITHUB_TOKEN", ""), 
+                                  help="Required for private repos and higher rate limits")
+
 # Data Loading
 @st.cache_data
+def load_data(user, token):
     d = github_api.get_live_github_data(user, token)
     if not d:
         st.warning("Using mock data (API limits).")
@@ -124,13 +158,7 @@ if custom_colors:
 
 
 # --- Layout: Tabs ---
-<<<<<<< HEAD
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Main Stats", "Languages", "Contributions", "Streak", "Top Repos", "Icons & Badges", "🔥 AI Roast"])
-
-
-=======
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Main Stats", "Languages", "Contributions", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
->>>>>>> cbb812d0c91d6b7aeb9b0eaee07897344e999074
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Main Stats", "Languages", "Contributions", "Streak", "Top Repos", "Icons & Badges", "Social Links", "🔥 AI Roast"])
 
 def show_code_area(code_content, label="Markdown Code"):
     st.markdown(f"**{label}** (Copy below)")
@@ -282,8 +310,6 @@ with tab5:
                code_template=f"[![Top Repos]({{url}})](https://github.com/{username})")
 
 with tab6:
-
-
     st.subheader("Tech Stack Badges")
     st.markdown("Click detailed settings to customize. Copy the code block to your README.")
     
@@ -296,22 +322,11 @@ with tab6:
         # Categories
         for category, tools in badge_generator.TECH_STACK.items():
             st.markdown(f"**{category}**")
-            cols = st.columns(4)
-            for i, (tool_name, specs) in enumerate(tools.items()):
-                # Checkbox to include
-                # If we want a click-to-add flow without rerun, we need session state lists
-                # Let's use Multiselect for efficiency or columns of checkboxes
-                # A Multiselect for each category is cleaner
-                pass
             
             # Better UI: Multi-selects per category
             selected = st.multiselect(f"Select {category}", list(tools.keys()), key=f"sel_{category}")
             if selected:
-                # Add to a session state list for the preview? 
-                # Actually just rendering them below is fine.
                 if "badges" not in st.session_state: st.session_state.badges = []
-                # append is tricky with immediate reruns. 
-                # Let's just gather all selected options from all multiselects at render time.
                 pass
 
     with col_preview:
@@ -324,8 +339,6 @@ with tab6:
             val = st.session_state.get(f"sel_{category}", [])
             for item in val:
                 conf = tools[item]
-                # Allow user to override color?
-                # For now use default brand color
                 all_selected_badges.append((item, conf))
         
         if not all_selected_badges:
@@ -333,15 +346,9 @@ with tab6:
         else:
             # Render Preview
             md_output = ""
-            # Making Global Variable, if user wants to match the theme:   
             should_match = st.checkbox("Match Theme Color", value=False, key="match_theme_global")
             for name, conf in all_selected_badges:
-                # Logic to use custom color if user wants consistency?
-                # User asked for customization.
-                # Let's add a "Override All Colors" checkbox
-                
                 final_color = conf['color']
-                # Using the variable we captured before:
                 if should_match:
                     final_color = current_theme_opts['title_color'].replace("#", "")
                 
@@ -352,70 +359,72 @@ with tab6:
             st.markdown("---")
             show_code_area(md_output, label="Badge Code")
 
-# NEW TAB 5: AI ROAST
 with tab7:
-    st.subheader("🔥 AI Profile Roast")
+    st.subheader("Social Links")
+    st.markdown("Add your social media links and contact information.")
+    
+    # Social media inputs
+    col1, col2 = st.columns(2)
+    with col1:
+        twitter_url = st.text_input("Twitter URL", placeholder="https://twitter.com/username", key="twitter")
+        linkedin_url = st.text_input("LinkedIn URL", placeholder="https://linkedin.com/in/username", key="linkedin")
+        website_url = st.text_input("Website URL", placeholder="https://example.com", key="website")
+    with col2:
+        email_url = st.text_input("Email", placeholder="email@example.com", key="email")
+        youtube_url = st.text_input("YouTube URL", placeholder="https://youtube.com/channel/...", key="youtube")
+    
+    # Platform selection
+    st.markdown("**Select which links to display:**")
+    col_select1, col_select2, col_select3 = st.columns(3)
+    with col_select1:
+        show_twitter = st.checkbox("Twitter", value=True, key="show_twitter")
+        show_linkedin = st.checkbox("LinkedIn", value=True, key="show_linkedin")
+    with col_select2:
+        show_website = st.checkbox("Website", value=True, key="show_website")
+        show_email = st.checkbox("Email", value=True, key="show_email")
+    with col_select3:
+        show_youtube = st.checkbox("YouTube", value=True, key="show_youtube")
+    
+    # Custom icon color
+    use_custom_icon_color = st.checkbox("Use custom icon color", value=False, key="use_custom_icon_color")
+    custom_icon_color = None
+    if use_custom_icon_color:
+        custom_icon_color = st.color_picker("Icon Color", value=current_theme_opts.get('title_color', '#58a6ff'), key="custom_icon_color")
+    
+    # Build social data dict
+    social_data = {
+        "twitter": twitter_url if show_twitter else "",
+        "linkedin": linkedin_url if show_linkedin else "",
+        "website": website_url if show_website else "",
+        "email": f"mailto:{email_url}" if show_email and email_url else "",
+        "youtube": youtube_url if show_youtube else ""
+    }
+    
+    # Build selected platforms list
+    selected_platforms = []
+    if show_twitter and twitter_url: selected_platforms.append("twitter")
+    if show_linkedin and linkedin_url: selected_platforms.append("linkedin")
+    if show_website and website_url: selected_platforms.append("website")
+    if show_email and email_url: selected_platforms.append("email")
+    if show_youtube and youtube_url: selected_platforms.append("youtube")
+    
+    # Generate social card
+    svg_bytes = social_card.draw_social_card(
+        social_data, 
+        selected_theme, 
+        custom_colors, 
+        selected_platforms=selected_platforms,
+        icon_color=custom_icon_color
+    )
+    
+    # Render using the standard tab rendering
+    render_tab(svg_bytes, "social", username, selected_theme, custom_colors, code_template="![Social Links]({url})")
 
+with tab8:
+    st.subheader("🔥 AI Profile Roast")
     st.markdown("Let AI roast your GitHub profile with humor!")
     
     if username:
         render_roast_widget(username)
     else:
         st.warning("Please enter a GitHub username in the sidebar.")
-
-with tab6:
-    st.subheader("Recent Activity")
-    st.markdown("Shows your last 3 PR or Issue events from GitHub.")
-
-    col1, col2 = st.columns([1.5, 1])
-    with col1:
-        st.caption("Theme: **{}**".format(selected_theme))
-        try:
-            # Pass selected_theme string
-            svg_bytes = recent_activity_card.draw_recent_activity_card({'username': username}, selected_theme, custom_colors, token=github_token)
-        except Exception as e:
-            st.error(f"Error rendering recent activity: {e}")
-            svg_bytes = recent_activity_card._render_svg_lines([f"Error: {e}"], THEMES.get(selected_theme, THEMES['Default']))
-
-        b64 = base64.b64encode(svg_bytes.encode('utf-8')).decode("utf-8")
-        st.markdown(f'<img src="data:image/svg+xml;base64,{b64}" style="max-width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border-radius: 10px;"/>', unsafe_allow_html=True)
-
-    with col2:
-        st.subheader("Integration")
-        params = []
-        if selected_theme != "Default": params.append(f"theme={selected_theme}")
-        for k, v in custom_colors.items():
-            params.append(f"{k}={v.replace('#', '')}")
-        if github_token:
-            params.append(f"token={github_token}")
-
-        query_str = "&".join(params)
-        if query_str: query_str = "?" + query_str
-
-        url = f"https://gitcanvas-api.vercel.app/api/recent{query_str}&username={username}"
-        code = f"![Recent Activity]({url})"
-        show_code_area(code)
-
-with tab7:
-    st.subheader("✨ Visual Elements")
-    st.markdown("Add emojis, GIFs, or stickers to your canvas")
-
-    element_type = st.selectbox(
-        "Choose element type",
-        ["Emoji", "GIF", "Sticker"]
-    )
-
-    value = st.text_input(
-        "Enter value",
-        placeholder="🔥 or https://gif-url"
-    )
-
-    if st.button("Add to Canvas"):
-        if element_type == "Emoji":
-            svg = emoji_element(value)
-        elif element_type == "GIF":
-            svg = gif_element(value)
-        else:
-            svg = sticker_element(value)
-
-        st.session_state["canvas"].append(svg)
