@@ -6,19 +6,8 @@ from dotenv import load_dotenv
 from roast_widget_streamlit import render_roast_widget
 from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card, streak_card, repo_card
 from utils import github_api
-from themes.styles import THEMES
-from generators.visual_elements import (
-    emoji_element,
-    gif_element,
-    sticker_element
-)
+from themes.styles import THEMES, CUSTOM_THEMES, save_custom_theme, load_custom_themes, get_all_themes
 
-# Initialize canvas in session state
-if "canvas" not in st.session_state:
-    st.session_state["canvas"] = []
-
-for item in st.session_state["canvas"]:
-    components.html(item, height=150)
 
 # Load environment variables
 load_dotenv()
@@ -64,14 +53,25 @@ with st.sidebar:
     username = st.text_input("GitHub Username", value="torvalds")
     
     st.header("2. Global Style")
-    selected_theme = st.selectbox("Select Theme", list(THEMES.keys()))
+    
+    # Get all themes including custom ones
+    all_themes = get_all_themes()
+    
+    # Separate predefined and custom themes for better organization
+    predefined_themes = [k for k in all_themes.keys() if k not in CUSTOM_THEMES]
+    custom_theme_names = list(CUSTOM_THEMES.keys())
+    
+    # Combine with custom themes at the end
+    theme_options = predefined_themes + custom_theme_names
+    
+    selected_theme = st.selectbox("Select Theme", theme_options)
     
     # Customization Expander
     # Ensure custom_colors exists even if the expander isn't opened
     custom_colors = {}
     with st.expander("Customize Colors", expanded=False):
         st.caption("Override theme defaults")
-        default_theme = THEMES.get(selected_theme, THEMES["Default"]).copy() # Copy to avoid mutating global
+        default_theme = all_themes.get(selected_theme, all_themes["Default"]).copy() # Copy to avoid mutating global
         
         # Helper to get color safely
         def get_col(key): return default_theme.get(key, "#000000")
@@ -88,9 +88,84 @@ with st.sidebar:
         if custom_text != get_col("text_color"): custom_colors["text_color"] = custom_text
         if custom_border != get_col("border_color"): custom_colors["border_color"] = custom_border
 
-    github_token = st.text_input("GitHub Token (optional)", type="password", help="Enter your GitHub token to fetch contribution data")
-    
+    # Custom Theme Creator Section
+    with st.expander("🎨 Custom Theme Creator", expanded=False):
+        st.caption("Create and save your own custom theme")
+        
+        # Initialize session state for custom theme colors if not exists
+        if "custom_theme_colors" not in st.session_state:
+            st.session_state.custom_theme_colors = {
+                "bg_color": "#0d1117",
+                "border_color": "#30363d",
+                "title_color": "#58a6ff",
+                "text_color": "#c9d1d9",
+                "icon_color": "#8b949e"
+        col1, col2 = st.columns(2)
+        with col1:
+            new_bg = st.color_picker("Background", value=st.session_state.custom_theme_colors["bg_color"], key="new_bg")
+            new_title = st.color_picker("Title Color", value=st.session_state.custom_theme_colors["title_color"], key="new_title")
+            new_icon = st.color_picker("Icon Color", value=st.session_state.custom_theme_colors["icon_color"], key="new_icon")
+        with col2:
+            new_border = st.color_picker("Border Color", value=st.session_state.custom_theme_colors["border_color"], key="new_border")
+            new_text = st.color_picker("Text Color", value=st.session_state.custom_theme_colors["text_color"], key="new_text")
+        
+        # Update session state
+        st.session_state.custom_theme_colors = {
+            "bg_color": new_bg,
+            "border_color": new_border,
+            "title_color": new_title,
+            "text_color": new_text,
+            "icon_color": new_icon,
+            "font_family": "Segoe UI, Ubuntu, Sans-Serif",
+            "title_font_size": 20,
+            "text_font_size": 14
+        }
+        
+        # Theme name input
+        custom_theme_name = st.text_input("Theme Name", placeholder="e.g., My Awesome Theme", key="custom_theme_name")
+        
+        # Save button
+        if st.button("💾 Save Theme", use_container_width=True, key="save_theme_btn"):
+            if custom_theme_name.strip():
+                try:
+                    filename = save_custom_theme(custom_theme_name, st.session_state.custom_theme_colors)
+                    st.success(f"Theme '{custom_theme_name}' saved successfully!")
+                    
+                    # Reload custom themes
+                    from themes.styles import CUSTOM_THEMES as ct
+                    ct.clear()
+                    ct.update(load_custom_themes())
+                    
+                    # Force rerun to update theme dropdown
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error saving theme: {str(e)}")
+            else:
+                st.warning("Please enter a theme name.")
+        
+        # Show saved custom themes
+        if custom_theme_names:
+            st.markdown("**Your Custom Themes:**")
+            for theme_name in custom_theme_names:
+                col_theme, col_del = st.columns([3, 1])
+                with col_theme:
+                    st.markdown(f"• {theme_name}")
+                with col_del:
+                    if st.button("🗑️", key=f"del_{theme_name}", help=f"Delete {theme_name}"):
+                        # Delete the custom theme file
+                        try:
+                            safe_name = theme_name.lower().replace(' ', '_').replace('-', '_')
+                            filename = f"custom_{safe_name}.json"
+                            filepath = os.path.join(os.path.dirname(__file__), "themes", "json", filename)
+                            if os.path.exists(filepath):
+                                os.remove(filepath)
+                                st.success(f"Theme '{theme_name}' deleted!")
+                                st.rerun()
+                        except Exception as e:
+                            st.error(f"Error deleting theme: {str(e)}")
+
     if st.button("Refresh Data", use_container_width=True):
+
         st.cache_data.clear()
         st.success("Cache cleared! Data will be refreshed on next interaction.")
         st.rerun()
@@ -104,7 +179,6 @@ def load_data(user, token=None):
     if not d:
         st.warning("Using mock data (API limits).")
         d = github_api.get_mock_data(user)
-    return d
 
 data = load_data(username if username else "torvalds", github_token if github_token else None)
 
@@ -113,9 +187,10 @@ if "top_repos" not in data:
     data["top_repos"] = []
 
 # Apply custom colors to current theme for python logic
-current_theme_opts = THEMES.get(selected_theme, THEMES["Default"]).copy()
+current_theme_opts = all_themes.get(selected_theme, all_themes["Default"]).copy()
 if custom_colors:
     current_theme_opts.update(custom_colors)
+
 
 # --- Layout: Tabs ---
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["Main Stats", "Languages", "Top Repositories", "Contributions", "🔥 GitHub Streak", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
