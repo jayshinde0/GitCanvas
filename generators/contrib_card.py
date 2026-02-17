@@ -157,6 +157,43 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None):
             x2 = demo_x + 20 * math.cos(rad)
             y2 = demo_y + 20 * math.sin(rad)
             dwg.add(dwg.line(start=(x1, y1), end=(x2, y2), stroke="#ff0000", stroke_width=1.5, opacity=0.5))
+    elif theme_name == "Pacman":
+        # Pac-Man arcade theme
+        # Maze grid lines
+        for i in range(0, width, 25):
+            dwg.add(dwg.line(start=(i, 50), end=(i, height-10), stroke="#1919a6", stroke_width=0.5, opacity=0.3))
+        
+        # Pellets (contributions)
+        box_size = 8
+        gap = 3
+        start_x = 25
+        start_y = 60
+        
+        for col in range(35):
+            for row in range(6):
+                x = start_x + col * (box_size + gap) + box_size//2
+                y = start_y + row * (box_size + gap) + box_size//2
+                
+                level = random.choice([0, 1, 2, 3, 4])
+                if level == 0:
+                    dwg.add(dwg.circle(center=(x, y), r=1.5, fill="#333333"))
+                elif level >= 3:
+                    # Power pellet
+                    dwg.add(dwg.circle(center=(x, y), r=4, fill="#ffb8ae"))
+                else:
+                    # Regular pellet
+                    colors = ["#4169e1", "#ff8c00", "#ffff00"]
+                    dwg.add(dwg.circle(center=(x, y), r=3, fill=colors[level-1]))
+        
+        # Pac-Man character
+        pacman_x = 15
+        pacman_y = 75
+        pacman_path = dwg.path(d=f"M {pacman_x} {pacman_y} " +
+                              f"L {pacman_x + 10} {pacman_y - 8} " +
+                              f"A 10 10 0 1 1 {pacman_x + 10} {pacman_y + 8} Z",
+                              fill="#ffff00")
+        dwg.add(pacman_path)
+        
 
     else:
         # Default Grid (Github Style)

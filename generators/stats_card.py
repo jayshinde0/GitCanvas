@@ -56,6 +56,41 @@ def draw_stats_card(data, theme_name="Default", show_options=None, custom_colors
         # Red glow around border
         dwg.add(dwg.rect(insert=(2, 2), size=(width-4, height-4), rx=9, ry=9, 
                         fill="none", stroke="#ff0000", stroke_width=1, opacity=0.3))
+    elif theme_name == "Pacman":
+        # Pac-Man character
+        pac_x = width - 45
+        pac_y = 30
+        pacman_path = dwg.path(d=f"M {pac_x} {pac_y} " +
+                              f"L {pac_x + 12} {pac_y - 10} " +
+                              f"A 12 12 0 1 1 {pac_x + 12} {pac_y + 10} Z",
+                              fill="#ffff00", stroke="#000000", stroke_width=0.5)
+        dwg.add(pacman_path)
+        dwg.add(dwg.circle(center=(pac_x + 8, pac_y - 3), r=2, fill="#000000"))
+        
+        # Pellets trail
+        pellet_y = height - 15
+        for i in range(5):
+            pellet_x = 30 + i * 20
+            dwg.add(dwg.circle(center=(pellet_x, pellet_y), r=3, fill="#ffff00"))
+        
+        # Ghost
+        ghost_x = 25
+        ghost_y = 25
+        ghost_body = dwg.path(
+            d=f"M {ghost_x} {ghost_y + 5} " +
+              f"A 7 7 0 0 1 {ghost_x + 14} {ghost_y + 5} " +
+              f"L {ghost_x + 14} {ghost_y + 14} " +
+              f"L {ghost_x + 11} {ghost_y + 11} " +
+              f"L {ghost_x + 7} {ghost_y + 14} " +
+              f"L {ghost_x + 3} {ghost_y + 11} " +
+              f"L {ghost_x} {ghost_y + 14} Z",
+            fill="#ff0000", opacity=0.7
+        )
+        dwg.add(ghost_body)
+        
+        # Ghost eyes
+        dwg.add(dwg.circle(center=(ghost_x + 5, ghost_y + 8), r=2, fill="#ffffff"))
+        dwg.add(dwg.circle(center=(ghost_x + 10, ghost_y + 8), r=2, fill="#ffffff"))
 
     # Title
     font_family = theme["font_family"]
