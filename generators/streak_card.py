@@ -73,9 +73,18 @@ def draw_streak_card(data, theme_name="Default", custom_colors=None):
     dwg.add(dwg.path(d=f"M {trophy_x + 15} {trophy_y - 5} " \
                        f"Q {trophy_x + 25} {trophy_y - 5} {trophy_x + 22} {trophy_y + 5}", 
                      fill="none", stroke=icon_color, stroke_width=3))
-    # Star on trophy
-    dwg.add(dwg.star(center=(trophy_x, trophy_y - 8), r_outer=6, r_inner=3, 
-                     fill=title_color))
+    # Star on trophy (5-pointed star using path)
+    star_path = f"M {trophy_x} {trophy_y - 14} " \
+                f"L {trophy_x + 1.8} {trophy_y - 6.5} " \
+                f"L {trophy_x + 5.7} {trophy_y - 5.5} " \
+                f"L {trophy_x + 3.5} {trophy_y - 1.5} " \
+                f"L {trophy_x + 4.4} {trophy_y + 2.5} " \
+                f"L {trophy_x} {trophy_y - 0.5} " \
+                f"L {trophy_x - 4.4} {trophy_y + 2.5} " \
+                f"L {trophy_x - 3.5} {trophy_y - 1.5} " \
+                f"L {trophy_x - 5.7} {trophy_y - 5.5} " \
+                f"L {trophy_x - 1.8} {trophy_y - 6.5} Z"
+    dwg.add(dwg.path(d=star_path, fill=title_color))
     
     # Longest Streak Label
     dwg.add(dwg.text("Longest Streak", insert=(trophy_x, trophy_y + 45), 

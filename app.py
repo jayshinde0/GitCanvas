@@ -1,9 +1,10 @@
 import streamlit as st  # type: ignore
 import base64
 import os
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from roast_widget_streamlit import render_roast_widget
-from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card
+from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card, streak_card
 from utils import github_api
 from themes.styles import THEMES
 from generators.visual_elements import (
@@ -17,7 +18,7 @@ if "canvas" not in st.session_state:
     st.session_state["canvas"] = []
 
 for item in st.session_state["canvas"]:
-    st.markdown(item, unsafe_allow_html=True)
+    components.html(item, height=150)
 
 # Load environment variables
 load_dotenv()
@@ -122,6 +123,7 @@ current_theme_opts = all_themes.get(selected_theme, all_themes["Default"]).copy(
 if custom_colors:
     current_theme_opts.update(custom_colors)
 
+<<<<<<< HEAD
 
 # --- Layout: Tabs ---
 <<<<<<< HEAD
@@ -131,6 +133,10 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Main Stats", "Languages", "
 =======
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Main Stats", "Languages", "Contributions", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
 >>>>>>> cbb812d0c91d6b7aeb9b0eaee07897344e999074
+=======
+# --- Layout: Tabs ---
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Main Stats", "Languages", "Contributions", "🔥 GitHub Streak", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
+>>>>>>> 87ce88a6014728ef4dc9f100a3573829d1d33e9c
 
 def show_code_area(code_content, label="Markdown Code"):
     st.markdown(f"**{label}** (Copy below)")
@@ -257,6 +263,7 @@ with tab4:
     render_tab(svg_bytes, "streak", username, selected_theme, custom_colors, code_template="![GitHub Streak]({url})")
 
 with tab5:
+<<<<<<< HEAD
     st.subheader("Top Repositories")
     st.caption("⭐ Showcase your best work! Display your most popular repositories.")
     
@@ -284,6 +291,8 @@ with tab5:
 with tab6:
 
 
+=======
+>>>>>>> 87ce88a6014728ef4dc9f100a3573829d1d33e9c
     st.subheader("Tech Stack Badges")
     st.markdown("Click detailed settings to customize. Copy the code block to your README.")
     
@@ -352,8 +361,13 @@ with tab6:
             st.markdown("---")
             show_code_area(md_output, label="Badge Code")
 
+<<<<<<< HEAD
 # NEW TAB 5: AI ROAST
 with tab7:
+=======
+# NEW TAB 6: AI ROAST
+with tab6:
+>>>>>>> 87ce88a6014728ef4dc9f100a3573829d1d33e9c
     st.subheader("🔥 AI Profile Roast")
 
     st.markdown("Let AI roast your GitHub profile with humor!")
@@ -363,7 +377,7 @@ with tab7:
     else:
         st.warning("Please enter a GitHub username in the sidebar.")
 
-with tab6:
+with tab7:
     st.subheader("Recent Activity")
     st.markdown("Shows your last 3 PR or Issue events from GitHub.")
 
@@ -396,7 +410,7 @@ with tab6:
         code = f"![Recent Activity]({url})"
         show_code_area(code)
 
-with tab7:
+with tab8:
     st.subheader("✨ Visual Elements")
     st.markdown("Add emojis, GIFs, or stickers to your canvas")
 

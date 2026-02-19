@@ -143,12 +143,11 @@ def get_live_github_data(username, token=None):
             contrib_resp = requests.get(contrib_url)
             if contrib_resp.status_code == 200:
                 c_data = contrib_resp.json()
-<<<<<<< HEAD
-                # Sum up all contributions in the returned calendar year(s)
-                all_days = []
-                if 'contributions' in c_data:
-                    for year_group in c_data['contributions']:
-                        all_days.extend(year_group.get('days', []))
+                if 'total' in c_data and isinstance(c_data['total'], dict):
+                    # Sum all year totals into a single integer
+                    total_commits = sum(c_data['total'].values())
+            # If the response isn't 200, it stays as 0
+        except Exception as ex:
             print(f"Contrib API Error: {ex}")
             total_commits = 0 # Safety fallback
 
@@ -158,11 +157,7 @@ def get_live_github_data(username, token=None):
             "public_repos": user_data.get("public_repos", 0),
             "followers": user_data.get("followers", 0),
             "top_languages": top_langs,
-<<<<<<< HEAD
-            "streak_data": streak_data
-        }
-
-=======
+<<<<<<<<< Temporary merge branch 1
         }
 
         # --- Optional GraphQL enrichment ---
@@ -182,7 +177,11 @@ def get_live_github_data(username, token=None):
 
         return data
 
->>>>>>> cbb812d0c91d6b7aeb9b0eaee07897344e999074
+=========
+            "streak_data": streak_data
+        }
+
+>>>>>>>>> Temporary merge branch 2
             
     except Exception as e:
         print(f"Error: {e}")
@@ -197,17 +196,9 @@ def get_mock_data(username):
         "public_repos": 25,
         "followers": 85,
         "top_languages": [("Python", 10), ("JavaScript", 5), ("Rust", 2)],
-<<<<<<< HEAD
-        "streak_data": {
-            "current_streak": 15,
-            "longest_streak": 45,
-            "total_contributions": 450
-        }
-=======
         "contributions":[ 
             {"date": f"2025-01-{i+1:02d}", "count": (i * 3) % 10}
             for i in range(80)
         ]
 
->>>>>>> cbb812d0c91d6b7aeb9b0eaee07897344e999074
     }
