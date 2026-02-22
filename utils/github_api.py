@@ -119,21 +119,48 @@ def get_live_github_data(username, token=None):
         user_data = user_resp.json()
         
         # Repos for stars count (limited to first 100 public repos for basic sum without pagination for MVP speed)
-        repos_url = f"https://api.github.com/users/{username}/repos?per_page=100&type=owner"
+        repos_url = f"https://api.github.com/users/{username}/repos?per_page=100&sort=updated"
         repos_resp = requests.get(repos_url, headers=headers)
         repos_data = repos_resp.json() if repos_resp.status_code == 200 else []
         
-        total_stars = sum(repo.get("stargazers_count", 0) for repo in repos_data)
+        # Validate response is a list
+        if not isinstance(repos_data, list):
+            # API returned an error dict instead of list
+            print(f"Repos API Error: {repos_data}")
+            repos_data = []
         
-        # Languages (Approximation from top repos)
+        # Store all repos including forks for frontend (let user decide)
+        all_repos = repos_data.copy()
+        
+        # For stats calculation, filter out forks
+        repos_data_no_forks = [repo for repo in repos_data if not repo.get("fork", False)]
+        
+        # For stats calculation, filter out forks
+        repos_data_no_forks = [repo for repo in repos_data if not repo.get("fork", False)]
+        
+        total_stars = sum(repo.get("stargazers_count", 0) for repo in repos_data_no_forks)
+        
+        # Languages (Approximation from top repos, excluding forks)
         languages = {}
-        for repo in repos_data[:10]: # Check top 10 repos
+        for repo in repos_data_no_forks[:10]: # Check top 10 non-fork repos
             lang = repo.get("language")
             if lang:
                 languages[lang] = languages.get(lang, 0) + 1
         
         top_langs = sorted(languages.items(), key=lambda x: x[1], reverse=True)[:5]
         
+        # Top repositories - include ALL repos (user can filter in UI if needed)
+        top_repos = [{
+            "name": repo.get("name", ""),
+            "description": repo.get("description", ""),
+            "language": repo.get("language", ""),
+            "stars": repo.get("stargazers_count", 0),
+            "forks": repo.get("forks_count", 0),
+            "updated_at": repo.get("updated_at", ""),
+            "is_fork": repo.get("fork", False)
+        } for repo in sorted(all_repos, key=lambda x: x.get("stargazers_count", 0), reverse=True)[:10]]
+        
+        print(f"Fetched {len(all_repos)} total repos ({len(repos_data_no_forks)} non-forks) for {username}, top_repos count: {len(top_repos)}")
 
         # Ensure total_commits is always an integer
         total_commits = 0 
@@ -157,7 +184,11 @@ def get_live_github_data(username, token=None):
             "public_repos": user_data.get("public_repos", 0),
             "followers": user_data.get("followers", 0),
             "top_languages": top_langs,
+<<<<<<< HEAD
 <<<<<<<<< Temporary merge branch 1
+=======
+            "top_repos": top_repos,
+>>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
         }
 
         # --- Optional GraphQL enrichment ---
@@ -199,6 +230,13 @@ def get_mock_data(username):
         "contributions":[ 
             {"date": f"2025-01-{i+1:02d}", "count": (i * 3) % 10}
             for i in range(80)
+        ],
+        "top_repos": [
+            {"name": "awesome-project", "description": "A cool project", "language": "Python", "stars": 150, "forks": 30, "updated_at": "2025-01-15"},
+            {"name": "web-app", "description": "Modern web application", "language": "JavaScript", "stars": 89, "forks": 12, "updated_at": "2025-01-20"},
+            {"name": "api-service", "description": "RESTful API service", "language": "Go", "stars": 65, "forks": 8, "updated_at": "2025-01-18"},
+            {"name": "cli-tool", "description": "Command line utility", "language": "Rust", "stars": 42, "forks": 5, "updated_at": "2025-01-10"},
+            {"name": "mobile-app", "description": "Cross-platform mobile app", "language": "TypeScript", "stars": 28, "forks": 3, "updated_at": "2025-01-12"}
         ]
 
     }

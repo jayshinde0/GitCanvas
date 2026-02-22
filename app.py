@@ -4,7 +4,7 @@ import os
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from roast_widget_streamlit import render_roast_widget
-from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card, streak_card
+from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card, streak_card, repo_card
 from utils import github_api
 from themes.styles import THEMES
 from generators.visual_elements import (
@@ -100,16 +100,30 @@ with st.sidebar:
         if custom_border != get_col("border_color"): custom_colors["border_color"] = custom_border
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     # Custom Theme Creator Section
     with st.expander("🎨 Custom Theme Creator", expanded=False):
         st.caption("Create and save your own custom theme")
+=======
+    github_token = st.text_input("GitHub Token (optional)", type="password", help="Enter your GitHub token to fetch contribution data")
+    
+    if st.button("Refresh Data", use_container_width=True):
+        st.cache_data.clear()
+        st.success("Cache cleared! Data will be refreshed on next interaction.")
+        st.rerun()
+>>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
         
         # Initialize session state for custom theme colors if not exists
         if "custom_theme_colors" not in st.session_state:
             st.session_state.custom_theme_colors = {
                 "bg_color": "#0d1117",
 # Data Loading
+<<<<<<< HEAD
 @st.cache_data
+=======
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def load_data(user, token=None):
+>>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
     d = github_api.get_live_github_data(user, token)
     if not d:
         st.warning("Using mock data (API limits).")
@@ -117,6 +131,10 @@ with st.sidebar:
     return d
 
 data = load_data(username if username else "torvalds", github_token if github_token else None)
+
+# Ensure backward compatibility with old cached data
+if "top_repos" not in data:
+    data["top_repos"] = []
 
 # Apply custom colors to current theme for python logic
 current_theme_opts = all_themes.get(selected_theme, all_themes["Default"]).copy()
@@ -126,6 +144,7 @@ if custom_colors:
 <<<<<<< HEAD
 
 # --- Layout: Tabs ---
+<<<<<<< HEAD
 <<<<<<< HEAD
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Main Stats", "Languages", "Contributions", "Streak", "Top Repos", "Icons & Badges", "🔥 AI Roast"])
 
@@ -137,6 +156,9 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Main Stats", "Languages", "
 # --- Layout: Tabs ---
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Main Stats", "Languages", "Contributions", "🔥 GitHub Streak", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
 >>>>>>> 87ce88a6014728ef4dc9f100a3573829d1d33e9c
+=======
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["Main Stats", "Languages", "Top Repositories", "Contributions", "🔥 GitHub Streak", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
+>>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
 
 def show_code_area(code_content, label="Markdown Code"):
     st.markdown(f"**{label}** (Copy below)")
@@ -243,6 +265,28 @@ with tab2:
     render_tab(svg_bytes, "languages", username, selected_theme, custom_colors, code_template="![Top Langs]({url})", excluded_languages=excluded_languages_str)
 
 with tab3:
+    st.subheader("Top Repositories")
+    
+    # Sorting options
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col1:
+        sort_by = st.selectbox("Sort by:", ["stars", "forks", "updated"], index=0, 
+                              format_func=lambda x: {"stars": "⭐ Most Starred", "forks": "🔱 Most Forked", "updated": "🕐 Recently Updated"}[x])
+    with col2:
+        repo_limit = st.slider("Number of repos:", min_value=3, max_value=10, value=5)
+    with col3:
+        exclude_forks = st.checkbox("Exclude forks", value=False, help="Hide forked repositories")
+    
+    # Filter data based on user preference
+    filtered_data = data.copy()
+    if exclude_forks and "top_repos" in filtered_data:
+        filtered_data["top_repos"] = [r for r in filtered_data["top_repos"] if not r.get("is_fork", False)]
+    
+    # Generate card - Pass selected_theme string
+    svg_bytes = repo_card.draw_repo_card(filtered_data, selected_theme, custom_colors, sort_by=sort_by, limit=repo_limit)
+    render_tab(svg_bytes, "repos", username, selected_theme, custom_colors, code_template="![Top Repos]({url})")
+
+with tab4:
     st.subheader("Contribution Graph")
     st.caption(f"Theme: **{selected_theme}**")
     if selected_theme == "Gaming": st.caption("🐍 Snake Mode: The snake grows as it eats commits.")
@@ -255,13 +299,14 @@ with tab3:
     svg_bytes = contrib_card.draw_contrib_card(data, selected_theme, custom_colors)
     render_tab(svg_bytes, "contributions", username, selected_theme, custom_colors, code_template="![Contributions]({url})")
 
-with tab4:
+with tab5:
     st.subheader("GitHub Streak")
     st.caption("🔥 Track your contribution streaks! Shows current consecutive days and your all-time longest streak.")
     
     svg_bytes = streak_card.draw_streak_card(data, selected_theme, custom_colors)
     render_tab(svg_bytes, "streak", username, selected_theme, custom_colors, code_template="![GitHub Streak]({url})")
 
+<<<<<<< HEAD
 with tab5:
 <<<<<<< HEAD
     st.subheader("Top Repositories")
@@ -293,6 +338,9 @@ with tab6:
 
 =======
 >>>>>>> 87ce88a6014728ef4dc9f100a3573829d1d33e9c
+=======
+with tab6:
+>>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
     st.subheader("Tech Stack Badges")
     st.markdown("Click detailed settings to customize. Copy the code block to your README.")
     
@@ -362,12 +410,17 @@ with tab6:
             show_code_area(md_output, label="Badge Code")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 # NEW TAB 5: AI ROAST
 with tab7:
 =======
 # NEW TAB 6: AI ROAST
 with tab6:
 >>>>>>> 87ce88a6014728ef4dc9f100a3573829d1d33e9c
+=======
+# NEW TAB 7: AI ROAST
+with tab7:
+>>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
     st.subheader("🔥 AI Profile Roast")
 
     st.markdown("Let AI roast your GitHub profile with humor!")
@@ -377,7 +430,7 @@ with tab6:
     else:
         st.warning("Please enter a GitHub username in the sidebar.")
 
-with tab7:
+with tab8:
     st.subheader("Recent Activity")
     st.markdown("Shows your last 3 PR or Issue events from GitHub.")
 
@@ -410,7 +463,7 @@ with tab7:
         code = f"![Recent Activity]({url})"
         show_code_area(code)
 
-with tab8:
+with tab9:
     st.subheader("✨ Visual Elements")
     st.markdown("Add emojis, GIFs, or stickers to your canvas")
 

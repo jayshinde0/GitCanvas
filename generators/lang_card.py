@@ -41,6 +41,8 @@ def draw_lang_card(data, theme_name="Default", custom_colors=None, excluded_lang
             for lang, count in langs 
             if lang.lower() not in excluded_lower
         ]
+    if langs:
+        langs = sorted(langs, key=lambda x: x[1], reverse=True)
     
     # Handle empty result after filtering
     if not langs:

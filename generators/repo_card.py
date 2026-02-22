@@ -11,6 +11,19 @@ def draw_repo_card(data, theme_name="Default", custom_colors=None, sort_by="star
     limit: number of repos displayed
     """
     repos = data.get("top_repos", [])
+    
+    # Apply sorting based on user selection
+    if repos and len(repos) > 0 and "name" in repos[0]:
+        if sort_by == "stars":
+            repos = sorted(repos, key=lambda x: x.get("stars", 0), reverse=True)
+        elif sort_by == "forks":
+            repos = sorted(repos, key=lambda x: x.get("forks", 0), reverse=True)
+        elif sort_by == "updated":
+            repos = sorted(repos, key=lambda x: x.get("updated_at", ""), reverse=True)
+    
+    # Apply limit
+    repos = repos[:limit]
+    
     if not repos:
         # Return empty card with message
         repos = [{"name": "No repositories found", "description": "Try a different username", "language": "N/A", "stars": 0, "forks": 0}]
