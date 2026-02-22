@@ -4,7 +4,7 @@ import os
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from roast_widget_streamlit import render_roast_widget
-from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card, streak_card, repo_card
+from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card, streak_card, repo_card, social_card
 from utils import github_api
 from themes.styles import THEMES, get_all_themes, CUSTOM_THEMES
 from generators.visual_elements import (
@@ -87,10 +87,11 @@ with st.sidebar:
         # Helper to get color safely
         def get_col(key): return default_theme.get(key, "#000000")
         
-        custom_bg = st.color_picker("Background", value=get_col("bg_color"))
-        custom_title = st.color_picker("Title Text", value=get_col("title_color"))
-        custom_text = st.color_picker("Body Text", value=get_col("text_color"))
-        custom_border = st.color_picker("Border", value=get_col("border_color"))
+        # Use theme-specific keys so each theme maintains its own customization
+        custom_bg = st.color_picker("Background", value=get_col("bg_color"), key=f"customize_bg_{selected_theme}")
+        custom_title = st.color_picker("Title Text", value=get_col("title_color"), key=f"customize_title_{selected_theme}")
+        custom_text = st.color_picker("Body Text", value=get_col("text_color"), key=f"customize_text_{selected_theme}")
+        custom_border = st.color_picker("Border", value=get_col("border_color"), key=f"customize_border_{selected_theme}")
         
         # Build custom colors dict if changed
         custom_colors = {}
@@ -99,12 +100,9 @@ with st.sidebar:
         if custom_text != get_col("text_color"): custom_colors["text_color"] = custom_text
         if custom_border != get_col("border_color"): custom_colors["border_color"] = custom_border
 
-    github_token = st.text_input("GitHub Token (optional)", type="password", help="Enter your GitHub token to fetch contribution data")
-    
-    if st.button("Refresh Data", use_container_width=True):
-        st.cache_data.clear()
-        st.success("Cache cleared! Data will be refreshed on next interaction.")
-        st.rerun()
+    # Custom Theme Creator Section
+    with st.expander("🎨 Custom Theme Creator", expanded=False):
+        st.caption("Create and save your own custom theme")
         
         # Initialize session state for custom theme colors if not exists
         if "custom_theme_colors" not in st.session_state:
@@ -113,40 +111,38 @@ with st.sidebar:
                 "border_color": "#30363d",
                 "title_color": "#58a6ff",
                 "text_color": "#c9d1d9",
-                "icon_color": "#8b949e"
+                "icon_color": "#58a6ff",
             }
         
-        # Color pickers for custom theme
-        custom_theme_name = st.text_input("Theme Name", value="My Custom Theme")
-        ct_bg = st.color_picker("Background", value=st.session_state.custom_theme_colors["bg_color"], key="ct_bg")
-        ct_border = st.color_picker("Border", value=st.session_state.custom_theme_colors["border_color"], key="ct_border")
-        ct_title = st.color_picker("Title", value=st.session_state.custom_theme_colors["title_color"], key="ct_title")
-        ct_text = st.color_picker("Text", value=st.session_state.custom_theme_colors["text_color"], key="ct_text")
-        ct_icon = st.color_picker("Icon", value=st.session_state.custom_theme_colors["icon_color"], key="ct_icon")
+        theme_name = st.text_input("Theme Name", placeholder="My Awesome Theme", key="new_theme_name")
         
-        if st.button("Save Custom Theme"):
-            from themes.styles import save_custom_theme
-            theme_data = {
-                "bg_color": ct_bg,
-                "border_color": ct_border,
-                "title_color": ct_title,
-                "text_color": ct_text,
-                "icon_color": ct_icon,
-                "font_family": "Segoe UI, Ubuntu, Sans-Serif",
-                "title_font_size": 20,
-                "text_font_size": 14
-            }
-            save_custom_theme(custom_theme_name, theme_data)
-            st.success(f"Theme '{custom_theme_name}' saved! Refresh to see it in the theme list.")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.session_state.custom_theme_colors["bg_color"] = st.color_picker("Background", st.session_state.custom_theme_colors["bg_color"], key="creator_bg")
+            st.session_state.custom_theme_colors["border_color"] = st.color_picker("Border", st.session_state.custom_theme_colors["border_color"], key="creator_border")
+        with col2:
+            st.session_state.custom_theme_colors["title_color"] = st.color_picker("Title", st.session_state.custom_theme_colors["title_color"], key="creator_title")
+            st.session_state.custom_theme_colors["text_color"] = st.color_picker("Text", st.session_state.custom_theme_colors["text_color"], key="creator_text")
+        
+        if st.button("💾 Save Theme", use_container_width=True):
+            if theme_name:
+                from themes.styles import save_custom_theme
+                filename = save_custom_theme(theme_name, st.session_state.custom_theme_colors)
+                st.success(f"Theme '{theme_name}' saved! Refresh to see it in the theme list.")
+            else:
+                st.error("Please enter a theme name")
 
-    # GitHub Token for API access
-    st.header("3. API Access (Optional)")
-    github_token = st.text_input("GitHub Token", type="password", value=os.getenv("GITHUB_TOKEN", ""), 
-                                  help="Required for private repos and higher rate limits")
+    github_token = st.text_input("GitHub Token (enter your token to view actual data)", type="password", help="Enter your GitHub token to fetch contribution data")
+    
+    if st.button("Refresh Data", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+        
+    st.info("💡 Tip: Use the 'Badges' tab to add your tech stack icons!")
 
 # Data Loading
 @st.cache_data(ttl=3600)  # Cache for 1 hour
-def load_data(user, token=None):
+def load_data(user, token=None, _cache_version="v2"):  # Added version to force cache invalidation
     d = github_api.get_live_github_data(user, token)
     if not d:
         st.warning("Using mock data (API limits).")
@@ -164,9 +160,8 @@ current_theme_opts = all_themes.get(selected_theme, all_themes["Default"]).copy(
 if custom_colors:
     current_theme_opts.update(custom_colors)
 
-
 # --- Layout: Tabs ---
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["Main Stats", "Languages", "Top Repositories", "Contributions", "🔥 GitHub Streak", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(["Main Stats", "Languages", "Top Repositories", "Contributions", "🔥 GitHub Streak", "🔗 Social Links", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
 
 def show_code_area(code_content, label="Markdown Code"):
     st.markdown(f"**{label}** (Copy below)")
@@ -315,6 +310,70 @@ with tab5:
     render_tab(svg_bytes, "streak", username, selected_theme, custom_colors, code_template="![GitHub Streak]({url})")
 
 with tab6:
+    st.subheader("🔗 Social Links")
+    st.markdown("Add badges for your social media profiles and connect with your audience!")
+    
+    # Social platform selection
+    st.markdown("#### Select Platforms")
+    available_platforms = list(social_card.SOCIAL_PLATFORMS.keys())
+    selected_platforms = st.multiselect(
+        "Choose platforms to display:",
+        available_platforms,
+        default=["twitter", "linkedin"],
+        format_func=lambda x: social_card.SOCIAL_PLATFORMS[x]["name"]
+    )
+    
+    # Input fields for each selected platform
+    social_data = {}
+    if selected_platforms:
+        st.markdown("#### Enter Your Handles/URLs")
+        cols = st.columns(2)
+        for idx, platform in enumerate(selected_platforms):
+            with cols[idx % 2]:
+                placeholder = social_card.SOCIAL_PLATFORMS[platform]["placeholder"]
+                social_data[platform] = st.text_input(
+                    social_card.SOCIAL_PLATFORMS[platform]["name"],
+                    placeholder=placeholder,
+                    key=f"social_{platform}"
+                )
+    
+    # Generate preview and code
+    if selected_platforms and any(social_data.values()):
+        col1, col2 = st.columns([1.5, 1])
+        with col1:
+            st.markdown("#### Preview")
+            try:
+                svg_bytes = social_card.draw_social_card(
+                    social_data,
+                    selected_theme,
+                    custom_colors,
+                    selected_platforms
+                )
+                b64 = base64.b64encode(svg_bytes.encode('utf-8')).decode("utf-8")
+                st.markdown(f'<img src="data:image/svg+xml;base64,{b64}" style="max-width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border-radius: 10px;"/>', unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error rendering social card: {e}")
+        
+        with col2:
+            st.markdown("#### Markdown Code")
+            # Generate individual badge code
+            badge_code = ""
+            for platform in selected_platforms:
+                if social_data.get(platform):
+                    platform_config = social_card.SOCIAL_PLATFORMS[platform]
+                    badge_url = social_card.generate_social_badge_url(
+                        platform,
+                        social_data[platform],
+                        platform_config["color"],
+                        platform_config["logo"]
+                    )
+                    badge_code += f"[![{platform_config['name']}]({badge_url})](https://your-profile-url)\n"
+            
+            st.text_area("Copy the code below:", value=badge_code, height=200, label_visibility="collapsed")
+    else:
+        st.info("👆 Select platforms and enter your handles to generate social badges")
+
+with tab7:
     st.subheader("Tech Stack Badges")
     st.markdown("Click detailed settings to customize. Copy the code block to your README.")
     
@@ -364,8 +423,8 @@ with tab6:
             st.markdown("---")
             show_code_area(md_output, label="Badge Code")
 
-# NEW TAB 7: AI ROAST
-with tab7:
+# AI ROAST TAB
+with tab8:
     st.subheader("🔥 AI Profile Roast")
 
     st.markdown("Let AI roast your GitHub profile with humor!")
@@ -375,7 +434,7 @@ with tab7:
     else:
         st.warning("Please enter a GitHub username in the sidebar.")
 
-with tab8:
+with tab9:
     st.subheader("Recent Activity")
     st.markdown("Shows your last 3 PR or Issue events from GitHub.")
 
@@ -408,7 +467,7 @@ with tab8:
         code = f"![Recent Activity]({url})"
         show_code_area(code)
 
-with tab9:
+with tab10:
     st.subheader("✨ Visual Elements")
     st.markdown("Add emojis, GIFs, or stickers to your canvas")
 

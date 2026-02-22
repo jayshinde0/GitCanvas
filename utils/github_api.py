@@ -112,15 +112,20 @@ def get_live_github_data(username, token=None):
         # User details
         user_url = f"https://api.github.com/users/{username}"
         headers = get_github_headers(token)
-        user_resp = requests.get(user_url, headers=headers)
+        print(f"Fetching user data for {username}, using token: {bool(token)}")
+        user_resp = requests.get(user_url, headers=headers, timeout=10)
 
         if user_resp.status_code != 200:
+            print(f"User API Error: Status {user_resp.status_code}, Response: {user_resp.text[:200]}")
             return None
         user_data = user_resp.json()
+        print(f"User data fetched successfully: {user_data.get('login', 'N/A')}")
         
         # Repos for stars count (limited to first 100 public repos for basic sum without pagination for MVP speed)
         repos_url = f"https://api.github.com/users/{username}/repos?per_page=100&sort=updated"
-        repos_resp = requests.get(repos_url, headers=headers)
+        print(f"Fetching repos from: {repos_url}")
+        repos_resp = requests.get(repos_url, headers=headers, timeout=10)
+        print(f"Repos API Status: {repos_resp.status_code}")
         repos_data = repos_resp.json() if repos_resp.status_code == 200 else []
         
         # Validate response is a list
@@ -170,6 +175,21 @@ def get_live_github_data(username, token=None):
             contrib_resp = requests.get(contrib_url)
             if contrib_resp.status_code == 200:
                 c_data = contrib_resp.json()
+                if 'total' in c_data and isinstance(c_data['total'], dict):
+                    # Sum all year totals into a single integer
+                    total_commits = sum(c_data['total'].values())
+            # If the response isn't 200, it stays as 0
+        except Exception as ex:
+            print(f"Contrib API Error: {ex}")
+            total_commits = 0 # Safety fallback
+
+        data = {
+            "username": username,
+            "total_stars": total_stars,
+            "total_commits": total_commits,
+            "public_repos": user_data.get("public_repos", 0),
+            "followers": user_data.get("followers", 0),
+            "top_languages": top_langs,
             "top_repos": top_repos,
         }
 
@@ -192,7 +212,9 @@ def get_live_github_data(username, token=None):
 
             
     except Exception as e:
-        print(f"Error: {e}")
+        import traceback
+        print(f"Error in get_live_github_data: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         return None
 
 def get_mock_data(username):
