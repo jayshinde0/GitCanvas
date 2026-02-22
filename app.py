@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from roast_widget_streamlit import render_roast_widget
 from generators import stats_card, lang_card, contrib_card, badge_generator, recent_activity_card, streak_card, repo_card
 from utils import github_api
-from themes.styles import THEMES
+from themes.styles import THEMES, get_all_themes, CUSTOM_THEMES
 from generators.visual_elements import (
     emoji_element,
     gif_element,
@@ -87,10 +87,10 @@ with st.sidebar:
         # Helper to get color safely
         def get_col(key): return default_theme.get(key, "#000000")
         
-        custom_bg = st.color_picker("Background", value=get_col("bg_color"))
-        custom_title = st.color_picker("Title Text", value=get_col("title_color"))
-        custom_text = st.color_picker("Body Text", value=get_col("text_color"))
-        custom_border = st.color_picker("Border", value=get_col("border_color"))
+        custom_bg = st.color_picker("Background", value=get_col("bg_color"), key="customize_bg")
+        custom_title = st.color_picker("Title Text", value=get_col("title_color"), key="customize_title")
+        custom_text = st.color_picker("Body Text", value=get_col("text_color"), key="customize_text")
+        custom_border = st.color_picker("Border", value=get_col("border_color"), key="customize_border")
         
         # Build custom colors dict if changed
         custom_colors = {}
@@ -99,31 +99,49 @@ with st.sidebar:
         if custom_text != get_col("text_color"): custom_colors["text_color"] = custom_text
         if custom_border != get_col("border_color"): custom_colors["border_color"] = custom_border
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     # Custom Theme Creator Section
     with st.expander("🎨 Custom Theme Creator", expanded=False):
         st.caption("Create and save your own custom theme")
-=======
-    github_token = st.text_input("GitHub Token (optional)", type="password", help="Enter your GitHub token to fetch contribution data")
-    
-    if st.button("Refresh Data", use_container_width=True):
-        st.cache_data.clear()
-        st.success("Cache cleared! Data will be refreshed on next interaction.")
-        st.rerun()
->>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
         
         # Initialize session state for custom theme colors if not exists
         if "custom_theme_colors" not in st.session_state:
             st.session_state.custom_theme_colors = {
                 "bg_color": "#0d1117",
+                "border_color": "#30363d",
+                "title_color": "#58a6ff",
+                "text_color": "#c9d1d9",
+                "icon_color": "#58a6ff",
+            }
+        
+        theme_name = st.text_input("Theme Name", placeholder="My Awesome Theme", key="new_theme_name")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.session_state.custom_theme_colors["bg_color"] = st.color_picker("Background", st.session_state.custom_theme_colors["bg_color"], key="creator_bg")
+            st.session_state.custom_theme_colors["border_color"] = st.color_picker("Border", st.session_state.custom_theme_colors["border_color"], key="creator_border")
+        with col2:
+            st.session_state.custom_theme_colors["title_color"] = st.color_picker("Title", st.session_state.custom_theme_colors["title_color"], key="creator_title")
+            st.session_state.custom_theme_colors["text_color"] = st.color_picker("Text", st.session_state.custom_theme_colors["text_color"], key="creator_text")
+        
+        if st.button("💾 Save Theme", use_container_width=True):
+            if theme_name:
+                from themes.styles import save_custom_theme
+                filename = save_custom_theme(theme_name, st.session_state.custom_theme_colors)
+                st.success(f"Theme '{theme_name}' saved! Refresh to see it in the theme list.")
+            else:
+                st.error("Please enter a theme name")
+
+    github_token = st.text_input("GitHub Token (enter your token to view actual data)", type="password", help="Enter your GitHub token to fetch contribution data")
+    
+    if st.button("Refresh Data", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+        
+    st.info("💡 Tip: Use the 'Badges' tab to add your tech stack icons!")
+
 # Data Loading
-<<<<<<< HEAD
-@st.cache_data
-=======
 @st.cache_data(ttl=3600)  # Cache for 1 hour
-def load_data(user, token=None):
->>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
+def load_data(user, token=None, _cache_version="v2"):  # Added version to force cache invalidation
     d = github_api.get_live_github_data(user, token)
     if not d:
         st.warning("Using mock data (API limits).")
@@ -141,24 +159,8 @@ current_theme_opts = all_themes.get(selected_theme, all_themes["Default"]).copy(
 if custom_colors:
     current_theme_opts.update(custom_colors)
 
-<<<<<<< HEAD
-
 # --- Layout: Tabs ---
-<<<<<<< HEAD
-<<<<<<< HEAD
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Main Stats", "Languages", "Contributions", "Streak", "Top Repos", "Icons & Badges", "🔥 AI Roast"])
-
-
-=======
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(["Main Stats", "Languages", "Contributions", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
->>>>>>> cbb812d0c91d6b7aeb9b0eaee07897344e999074
-=======
-# --- Layout: Tabs ---
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["Main Stats", "Languages", "Contributions", "🔥 GitHub Streak", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
->>>>>>> 87ce88a6014728ef4dc9f100a3573829d1d33e9c
-=======
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["Main Stats", "Languages", "Top Repositories", "Contributions", "🔥 GitHub Streak", "Icons & Badges", "🔥 AI Roast", "Recent Activity", "✨ Visual Elements"])
->>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
 
 def show_code_area(code_content, label="Markdown Code"):
     st.markdown(f"**{label}** (Copy below)")
@@ -306,41 +308,7 @@ with tab5:
     svg_bytes = streak_card.draw_streak_card(data, selected_theme, custom_colors)
     render_tab(svg_bytes, "streak", username, selected_theme, custom_colors, code_template="![GitHub Streak]({url})")
 
-<<<<<<< HEAD
-with tab5:
-<<<<<<< HEAD
-    st.subheader("Top Repositories")
-    st.caption("⭐ Showcase your best work! Display your most popular repositories.")
-    
-    # Controls
-    col_sort, col_limit = st.columns(2)
-    with col_sort:
-        sort_by = st.selectbox("Sort by", ["stars", "forks", "updated"], index=0, 
-                               format_func=lambda x: {"stars": "⭐ Stars", "forks": "🍴 Forks", "updated": "🕐 Recently Updated"}[x])
-    with col_limit:
-        limit = st.selectbox("Number of repos", [3, 5, 10], index=1)
-    
-    # Fetch top repos data
-    from utils.github_api import get_top_repositories
-    top_repos = get_top_repositories(username, sort_by=sort_by, limit=limit)
-    
-    # Update data dict with repos
-    repo_data = data.copy()
-    repo_data["top_repos"] = top_repos
-    
-    # Render card
-    svg_bytes = repo_card.draw_repo_card(repo_data, selected_theme, custom_colors, sort_by=sort_by, limit=limit)
-    render_tab(svg_bytes, "repos", username, selected_theme, custom_colors, 
-               code_template=f"[![Top Repos]({{url}})](https://github.com/{username})")
-
 with tab6:
-
-
-=======
->>>>>>> 87ce88a6014728ef4dc9f100a3573829d1d33e9c
-=======
-with tab6:
->>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
     st.subheader("Tech Stack Badges")
     st.markdown("Click detailed settings to customize. Copy the code block to your README.")
     
@@ -409,18 +377,8 @@ with tab6:
             st.markdown("---")
             show_code_area(md_output, label="Badge Code")
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-# NEW TAB 5: AI ROAST
+# AI ROAST TAB
 with tab7:
-=======
-# NEW TAB 6: AI ROAST
-with tab6:
->>>>>>> 87ce88a6014728ef4dc9f100a3573829d1d33e9c
-=======
-# NEW TAB 7: AI ROAST
-with tab7:
->>>>>>> 7477569c6944c5dedeae757aa4d6dae8c95ae08a
     st.subheader("🔥 AI Profile Roast")
 
     st.markdown("Let AI roast your GitHub profile with humor!")
