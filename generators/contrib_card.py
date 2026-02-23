@@ -426,6 +426,117 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
             x2 = demo_x + 20 * math.cos(rad)
             y2 = demo_y + 20 * math.sin(rad)
             dwg.add(dwg.line(start=(x1, y1), end=(x2, y2), stroke="#ff0000", stroke_width=1.5, opacity=0.5))
+    elif theme_name == "Pacman":
+        # Pac-Man arcade theme with ACTUAL GitHub contribution data
+        # Maze grid lines
+        for i in range(0, width, 25):
+            dwg.add(dwg.line(start=(i, 50), end=(i, height-10), stroke="#1919a6", stroke_width=0.5, opacity=0.3))
+        
+        # Get actual contribution data
+        box_size = 7
+        gap = 2
+        start_x = 26
+        start_y = 72
+        
+        cells = _weeks_to_cells(weeks, cols, rows, max_date)
+        max_count = max((cell["count"] for cell in cells if not cell["is_future"]), default=0)
+        levels = _levels_from_cells(cells, max_count)
+        positions = _grid_positions(cols, rows, start_x, start_y, box_size, gap)
+        
+        _add_timeline_labels(dwg, weeks, cols, rows, start_x, start_y, box_size, gap, theme)
+        
+        # Draw pellets based on actual contribution levels
+        for idx, (x, y) in enumerate(positions):
+            level = levels[idx]
+            if level is None:
+                continue
+            
+            center_x = x + box_size // 2
+            center_y = y + box_size // 2
+            
+            if level == 0:
+                # Empty space - small dot
+                dwg.add(dwg.circle(center=(center_x, center_y), r=1.5, fill="#333333"))
+            elif level >= 4:
+                # Power pellet (high activity)
+                dwg.add(dwg.circle(center=(center_x, center_y), r=4, fill="#ffb8ae"))
+                # Pulsing effect
+                dwg.add(dwg.circle(center=(center_x, center_y), r=5, fill="none", 
+                                 stroke="#ffb8ae", stroke_width=1, opacity=0.5))
+            else:
+                # Regular pellet - color based on level
+                colors = ["#4169e1", "#ff8c00", "#ffff00"]  # Blue, Orange, Yellow
+                dwg.add(dwg.circle(center=(center_x, center_y), r=3, fill=colors[level-1]))
+        
+        # Pac-Man character
+        pacman_x = 15
+        pacman_y = 75
+        pacman_path = dwg.path(d=f"M {pacman_x} {pacman_y} " +
+                              f"L {pacman_x + 10} {pacman_y - 8} " +
+                              f"A 10 10 0 1 1 {pacman_x + 10} {pacman_y + 8} Z",
+                              fill="#ffff00")
+        dwg.add(pacman_path)
+        
+        # Score display using actual commits
+        dwg.add(dwg.text(f"SCORE: {data.get('total_commits', '0')}", 
+                        insert=(width-120, 35), 
+                        fill="#ffff00", 
+                        font_family="Courier New", 
+                        font_size=12, 
+                        font_weight="bold"))
+        
+    elif theme_name == "Cyberpunk":
+        # Cyberpunk theme with neon grid and ACTUAL GitHub contribution data
+        # Neon grid background
+        for i in range(0, width, 20):
+            dwg.add(dwg.line(start=(i, 0), end=(i, height), stroke="#1a1a2e", stroke_width=0.3, opacity=0.5))
+        for i in range(0, height, 20):
+            dwg.add(dwg.line(start=(0, i), end=(width, i), stroke="#1a1a2e", stroke_width=0.3, opacity=0.5))
+        
+        # Get actual contribution data
+        box_size = 7
+        gap = 2
+        start_x = 26
+        start_y = 72
+        
+        cells = _weeks_to_cells(weeks, cols, rows, max_date)
+        max_count = max((cell["count"] for cell in cells if not cell["is_future"]), default=0)
+        levels = _levels_from_cells(cells, max_count)
+        positions = _grid_positions(cols, rows, start_x, start_y, box_size, gap)
+        
+        _add_timeline_labels(dwg, weeks, cols, rows, start_x, start_y, box_size, gap, theme)
+        
+        # Neon blocks based on actual contribution levels
+        neon_colors = ["#1a1a2e", "#00ffff", "#00ff41", "#ff00ff", "#ff0080"]
+        
+        for idx, (x, y) in enumerate(positions):
+            level = levels[idx]
+            if level is None:
+                continue
+            
+            fill_color = neon_colors[level]
+            
+            if level == 0:
+                dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), fill=fill_color, rx=1, opacity=0.5))
+            else:
+                dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), fill=fill_color, rx=1, opacity=0.7))
+                
+                if level >= 3:  # Glow effect for high activity
+                    dwg.add(dwg.rect(insert=(x-1, y-1), size=(box_size+2, box_size+2), 
+                                   fill="none", stroke=fill_color, stroke_width=1, rx=2, opacity=0.3))
+        
+        # Scan line effect
+        scan_y = 90
+        dwg.add(dwg.line(start=(0, scan_y), end=(width, scan_y), stroke="#00ff41", stroke_width=1.5, opacity=0.2))
+        
+        # Neon text display
+        dwg.add(dwg.text(f"COMMITS: {data.get('total_commits', '0')}", 
+                        insert=(width-140, 35), 
+                        fill="#00ff41", 
+                        font_family="'Courier New', monospace", 
+                        font_size=12, 
+                        font_weight="bold"))
+        
 
     elif original_theme_name == "Ocean":
         # Underwater scene with fish and bubbles based on contribution intensity

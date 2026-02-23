@@ -236,8 +236,98 @@ def draw_stats_card(data, theme_name="Default", show_options=None, custom_colors
     # Background (no animation)
     dwg.add(dwg.rect(insert=(0, 0), size=("100%", "100%"), rx=10, ry=10, 
                      fill=theme["bg_color"], stroke=theme["border_color"], stroke_width=2))
-    
-    # Title with animation
+    if theme_name == "Stranger_things":
+        # Floating particles in background
+        random.seed(42)
+        for i in range(12):
+            x = random.randint(20, width-20)
+            y = random.randint(20, height-20)
+            r = random.randint(1, 2)
+            dwg.add(dwg.circle(center=(x, y), r=r, fill="#ffffff", opacity=0.2))
+        
+        # Mini demogorgon in corner
+        demo_x = width - 40
+        demo_y = 35
+        dwg.add(dwg.circle(center=(demo_x, demo_y), r=12, fill="#330000", opacity=0.5))
+        
+        # Petals
+        for angle in range(0, 360, 60):
+            rad = math.radians(angle)
+            x1 = demo_x + 9 * math.cos(rad)
+            y1 = demo_y + 9 * math.sin(rad)
+            x2 = demo_x + 15 * math.cos(rad)
+            y2 = demo_y + 15 * math.sin(rad)
+            dwg.add(dwg.line(start=(x1, y1), end=(x2, y2), stroke="#ff0000", stroke_width=1, opacity=0.4))
+        
+        # Red glow around border
+        dwg.add(dwg.rect(insert=(2, 2), size=(width-4, height-4), rx=9, ry=9, 
+                        fill="none", stroke="#ff0000", stroke_width=1, opacity=0.3))
+    elif theme_name == "Pacman":
+        # Pac-Man character
+        pac_x = width - 45
+        pac_y = 30
+        pacman_path = dwg.path(d=f"M {pac_x} {pac_y} " +
+                              f"L {pac_x + 12} {pac_y - 10} " +
+                              f"A 12 12 0 1 1 {pac_x + 12} {pac_y + 10} Z",
+                              fill="#ffff00", stroke="#000000", stroke_width=0.5)
+        dwg.add(pacman_path)
+        dwg.add(dwg.circle(center=(pac_x + 8, pac_y - 3), r=2, fill="#000000"))
+        
+        # Pellets trail
+        pellet_y = height - 15
+        for i in range(5):
+            pellet_x = 30 + i * 20
+            dwg.add(dwg.circle(center=(pellet_x, pellet_y), r=3, fill="#ffff00"))
+        
+        # Ghost
+        ghost_x = 25
+        ghost_y = 25
+        ghost_body = dwg.path(
+            d=f"M {ghost_x} {ghost_y + 5} " +
+              f"A 7 7 0 0 1 {ghost_x + 14} {ghost_y + 5} " +
+              f"L {ghost_x + 14} {ghost_y + 14} " +
+              f"L {ghost_x + 11} {ghost_y + 11} " +
+              f"L {ghost_x + 7} {ghost_y + 14} " +
+              f"L {ghost_x + 3} {ghost_y + 11} " +
+              f"L {ghost_x} {ghost_y + 14} Z",
+            fill="#ff0000", opacity=0.7
+        )
+        dwg.add(ghost_body)
+        
+        # Ghost eyes
+        dwg.add(dwg.circle(center=(ghost_x + 5, ghost_y + 8), r=2, fill="#ffffff"))
+        dwg.add(dwg.circle(center=(ghost_x + 10, ghost_y + 8), r=2, fill="#ffffff"))
+    elif theme_name == "Cyberpunk":
+        # Grid overlay
+        for i in range(0, width, 30):
+            dwg.add(dwg.line(start=(i, 0), end=(i, height), 
+                           stroke="#1a1a2e", stroke_width=0.3, opacity=0.4))
+        for i in range(0, height, 30):
+            dwg.add(dwg.line(start=(0, i), end=(width, i), 
+                           stroke="#1a1a2e", stroke_width=0.3, opacity=0.4))
+        
+        # Scan line effect
+        scan_y = height / 2
+        dwg.add(dwg.line(start=(0, scan_y), end=(width, scan_y), 
+                        stroke="#00ff41", stroke_width=2, opacity=0.15))
+        
+        # Glitch rectangles
+        random.seed(456)
+        for _ in range(4):
+            gx = random.randint(0, width - 40)
+            gy = random.randint(0, height - 10)
+            gw = random.randint(15, 40)
+            dwg.add(dwg.rect(insert=(gx, gy), size=(gw, 2), 
+                           fill="#ff00ff", opacity=0.25))
+        
+        # Corner brackets (HUD style)
+        bracket_size = 15
+        dwg.add(dwg.path(d=f"M 10 10 L 10 {10+bracket_size} M 10 10 L {10+bracket_size} 10", 
+                        stroke="#00ffff", stroke_width=2, fill="none", opacity=0.5))
+        dwg.add(dwg.path(d=f"M {width-10} 10 L {width-10} {10+bracket_size} M {width-10} 10 L {width-10-bracket_size} 10", 
+                        stroke="#00ffff", stroke_width=2, fill="none", opacity=0.5))
+
+    # Title
     font_family = theme["font_family"]
     dwg.add(dwg.text(f"{data['username']}'s Stats", insert=(20, 35), 
                      fill=theme["title_color"], font_size=theme["title_font_size"], 
