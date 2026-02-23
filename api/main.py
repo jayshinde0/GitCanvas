@@ -1,6 +1,6 @@
 import hashlib
-from fastapi import FastAPI, Response, Query , Request
-from generators import stats_card, lang_card, contrib_card
+from fastapi import FastAPI, Response, Query, Request
+from generators import stats_card, lang_card, contrib_card, recent_activity_card
 from utils import github_api
 from typing import Optional
 
@@ -72,6 +72,7 @@ async def get_languages(
     request: Request,
     username: str,
     theme: str = "Default",
+    exclude: Optional[str] = None,
     bg_color: Optional[str] = None,
     title_color: Optional[str] = None,
     text_color: Optional[str] = None,
@@ -79,7 +80,13 @@ async def get_languages(
 ):
     data = github_api.get_live_github_data(username) or github_api.get_mock_data(username)
     custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
-    svg_content = lang_card.draw_lang_card(data, theme, custom_colors=custom_colors)
+    
+    # Parse exclude parameter into list of languages
+    excluded_languages = []
+    if exclude:
+        excluded_languages = [lang.strip() for lang in exclude.split(',') if lang.strip()]
+    
+    svg_content = lang_card.draw_lang_card(data, theme, custom_colors=custom_colors, excluded_languages=excluded_languages)
     return svg_response(svg_content , request)
 
 
@@ -98,3 +105,23 @@ async def get_contributions(
     svg_content = contrib_card.draw_contrib_card(data, theme, custom_colors=custom_colors)
     return svg_response(svg_content , request)
 
+
+@app.get("/api/recent")
+async def get_recent(
+    request: Request,
+    username: str,
+    theme: str = "Default",
+    token: Optional[str] = None,
+    bg_color: Optional[str] = None,
+    title_color: Optional[str] = None,
+    text_color: Optional[str] = None,
+    border_color: Optional[str] = None
+):
+    # Note: recent_activity_card fetches its own data internally via GitHub API
+    # It just needs the username. github_api.get_live_github_data is not strictly needed 
+    # unless we want to use shared logic or mock data fallback, 
+    # but recent_activity_card.draw_recent_activity_card takes `{'username': ...}`.
+    
+    custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
+    svg_content = recent_activity_card.draw_recent_activity_card({'username': username}, theme, custom_colors=custom_colors, token=token)
+    return svg_response(svg_content, request)

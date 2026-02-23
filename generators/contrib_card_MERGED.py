@@ -1,7 +1,7 @@
-﻿import math
 import svgwrite
-import random
 from themes.styles import THEMES
+import math
+import random
 from datetime import date, datetime, timedelta
 
 
@@ -181,6 +181,8 @@ def _add_timeline_labels(dwg, weeks, cols, rows, start_x, start_y, box_size, gap
             font_family=theme["font_family"],
             opacity=0.8
         ))
+
+
 def draw_contrib_card(data, theme_name="Default", custom_colors=None):
     """
     Generates the Contribution Graph Card SVG.
@@ -200,6 +202,7 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None):
     if original_theme_name == "Gaming":
         width = 560
         height = 180
+    
     dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}")
     
     # Background
@@ -267,7 +270,7 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None):
 
     elif original_theme_name == "Space":
         # Spaceship logic
-        # Commits are stars.
+        # Commits are stars based on contribution levels
         dwg.defs.add(dwg.style("""
             @keyframes twinkle {
             0%   { opacity: 0.3; }
@@ -323,9 +326,9 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None):
         dwg.add(dwg.line(start=(ship_x, ship_y), end=(width, ship_y), stroke="#00a8ff", stroke_width=2, stroke_dasharray="4,2"))
 
     elif original_theme_name == "Marvel":
-        # Infinity Stones
+        # Infinity Stones that glow based on contribution intensity per bucket
         stones = ["#FFD700", "#FF0000", "#0000FF", "#800080", "#008000", "#FFA500"] # Mind, Reality, Space, Power, Time, Soul
-
+        
         # Draw slots
         cx = width / 2
         cy = height / 2 + 10
@@ -361,265 +364,9 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None):
             
             # Label below
             dwg.add(dwg.text(f"Stone {i+1}", insert=(sx, sy+30), fill="white", font_size=10, text_anchor="middle"))
-
+            
         dwg.add(dwg.text("SNAP!", insert=(width-80, cy), fill=theme["title_color"], font_size=24, font_weight="bold", font_family="Impact"))
-    elif original_theme_name == "Stranger_things":
-        # Upside Down with demogorgon
-        # Floating particles
-        random.seed(42)
-        for i in range(15):
-            x = random.randint(20, width-20)
-            y = random.randint(40, height-20)
-            r = random.randint(1, 2)
-            dwg.add(dwg.circle(center=(x, y), r=r, fill="#ffffff", opacity=0.3))
-        
-        # Contribution grid with red glow using ACTUAL GitHub data
-        box_size = 7
-        gap = 2
-        start_x = 26
-        start_y = 72
-        
-        cells = _weeks_to_cells(weeks, cols, rows, max_date)
-        max_count = max((cell["count"] for cell in cells if not cell["is_future"]), default=0)
-        levels = _levels_from_cells(cells, max_count)
-        positions = _grid_positions(cols, rows, start_x, start_y, box_size, gap)
 
-        _add_timeline_labels(dwg, weeks, cols, rows, start_x, start_y, box_size, gap, theme)
-        
-        # Red-tinted colors for Stranger Things theme
-        colors = ["#1a1a1a", "#8b0000", "#b22222", "#dc143c", "#ff0000"]
-        
-        for idx, (x, y) in enumerate(positions):
-            level = levels[idx]
-            if level is None:
-                continue
-            fill = colors[level]
-            
-            dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), fill=fill, rx=1, opacity=0.7))
-            
-            if level == 4:  # High activity - add glow
-                dwg.add(dwg.rect(insert=(x-1, y-1), size=(box_size+2, box_size+2), 
-                               fill="none", stroke="#ff0000", stroke_width=0.5, opacity=0.4))
-        
-        # Mini demogorgon silhouette
-        demo_x = width - 50
-        demo_y = height - 50
-        dwg.add(dwg.circle(center=(demo_x, demo_y), r=15, fill="#330000", opacity=0.6))
-        
-        # Petals
-        for angle in range(0, 360, 60):
-            rad = math.radians(angle)
-            x1 = demo_x + 12 * math.cos(rad)
-            y1 = demo_y + 12 * math.sin(rad)
-            x2 = demo_x + 20 * math.cos(rad)
-            y2 = demo_y + 20 * math.sin(rad)
-            dwg.add(dwg.line(start=(x1, y1), end=(x2, y2), stroke="#ff0000", stroke_width=1.5, opacity=0.5))
-    elif theme_name == "Pacman":
-        # Pac-Man arcade theme with ACTUAL GitHub contribution data
-        # Maze grid lines
-        for i in range(0, width, 25):
-            dwg.add(dwg.line(start=(i, 50), end=(i, height-10), stroke="#1919a6", stroke_width=0.5, opacity=0.3))
-        
-        # Get actual contribution data
-        box_size = 7
-        gap = 2
-        start_x = 26
-        start_y = 72
-        
-        cells = _weeks_to_cells(weeks, cols, rows, max_date)
-        max_count = max((cell["count"] for cell in cells if not cell["is_future"]), default=0)
-        levels = _levels_from_cells(cells, max_count)
-        positions = _grid_positions(cols, rows, start_x, start_y, box_size, gap)
-        
-        _add_timeline_labels(dwg, weeks, cols, rows, start_x, start_y, box_size, gap, theme)
-        
-        # Draw pellets based on actual contribution levels
-        for idx, (x, y) in enumerate(positions):
-            level = levels[idx]
-            if level is None:
-                continue
-            
-            center_x = x + box_size // 2
-            center_y = y + box_size // 2
-            
-            if level == 0:
-                # Empty space - small dot
-                dwg.add(dwg.circle(center=(center_x, center_y), r=1.5, fill="#333333"))
-            elif level >= 4:
-                # Power pellet (high activity)
-                dwg.add(dwg.circle(center=(center_x, center_y), r=4, fill="#ffb8ae"))
-                # Pulsing effect
-                dwg.add(dwg.circle(center=(center_x, center_y), r=5, fill="none", 
-                                 stroke="#ffb8ae", stroke_width=1, opacity=0.5))
-            else:
-                # Regular pellet - color based on level
-                colors = ["#4169e1", "#ff8c00", "#ffff00"]  # Blue, Orange, Yellow
-                dwg.add(dwg.circle(center=(center_x, center_y), r=3, fill=colors[level-1]))
-        
-        # Pac-Man character
-        pacman_x = 15
-        pacman_y = 75
-        pacman_path = dwg.path(d=f"M {pacman_x} {pacman_y} " +
-                              f"L {pacman_x + 10} {pacman_y - 8} " +
-                              f"A 10 10 0 1 1 {pacman_x + 10} {pacman_y + 8} Z",
-                              fill="#ffff00")
-        dwg.add(pacman_path)
-        
-        # Score display using actual commits
-        dwg.add(dwg.text(f"SCORE: {data.get('total_commits', '0')}", 
-                        insert=(width-120, 35), 
-                        fill="#ffff00", 
-                        font_family="Courier New", 
-                        font_size=12, 
-                        font_weight="bold"))
-        
-    elif theme_name == "Cyberpunk":
-        # Cyberpunk theme with neon grid and ACTUAL GitHub contribution data
-        # Neon grid background
-        for i in range(0, width, 20):
-            dwg.add(dwg.line(start=(i, 0), end=(i, height), stroke="#1a1a2e", stroke_width=0.3, opacity=0.5))
-        for i in range(0, height, 20):
-            dwg.add(dwg.line(start=(0, i), end=(width, i), stroke="#1a1a2e", stroke_width=0.3, opacity=0.5))
-        
-        # Get actual contribution data
-        box_size = 7
-        gap = 2
-        start_x = 26
-        start_y = 72
-        
-        cells = _weeks_to_cells(weeks, cols, rows, max_date)
-        max_count = max((cell["count"] for cell in cells if not cell["is_future"]), default=0)
-        levels = _levels_from_cells(cells, max_count)
-        positions = _grid_positions(cols, rows, start_x, start_y, box_size, gap)
-        
-        _add_timeline_labels(dwg, weeks, cols, rows, start_x, start_y, box_size, gap, theme)
-        
-        # Neon blocks based on actual contribution levels
-        neon_colors = ["#1a1a2e", "#00ffff", "#00ff41", "#ff00ff", "#ff0080"]
-        
-        for idx, (x, y) in enumerate(positions):
-            level = levels[idx]
-            if level is None:
-                continue
-            
-            fill_color = neon_colors[level]
-            
-            if level == 0:
-                dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), fill=fill_color, rx=1, opacity=0.5))
-            else:
-                dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), fill=fill_color, rx=1, opacity=0.7))
-                
-                if level >= 3:  # Glow effect for high activity
-                    dwg.add(dwg.rect(insert=(x-1, y-1), size=(box_size+2, box_size+2), 
-                                   fill="none", stroke=fill_color, stroke_width=1, rx=2, opacity=0.3))
-        
-        # Scan line effect
-        scan_y = 90
-        dwg.add(dwg.line(start=(0, scan_y), end=(width, scan_y), stroke="#00ff41", stroke_width=1.5, opacity=0.2))
-    elif theme_name == "Cricket":
-        # Cricket stadium theme
-        # Stadium lights
-        for i in range(3):
-            light_x = 80 + i * 150
-            light_y = 45
-            dwg.add(dwg.circle(center=(light_x, light_y), r=4, fill="#ffeb3b", opacity=0.8))
-            dwg.add(dwg.circle(center=(light_x, light_y), r=7, fill="#ffeb3b", opacity=0.3))
-        
-        # Cricket field boundary
-        field_center_x = width // 2
-        field_center_y = height // 2 + 20
-        dwg.add(dwg.ellipse(center=(field_center_x, field_center_y), r=(200, 50), 
-                           fill="none", stroke="#ffffff", stroke_width=2, 
-                           stroke_dasharray="5,5", opacity=0.4))
-        
-        # Contribution boxes as runs
-        box_size = 9
-        gap = 2
-        start_x = 20
-        start_y = 60
-        
-        for col in range(38):
-            for row in range(6):
-                x = start_x + col * (box_size + gap)
-                y = start_y + row * (box_size + gap)
-                
-                level = random.choice([0, 1, 2, 3, 4])
-                if level == 0:
-                    # Duck (out)
-                    dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), 
-                                   fill="#8b4513", rx=1, opacity=0.3))
-                else:
-                    # Runs: 1, 2, 4, 6
-                    colors = ["#90ee90", "#7fbf7f", "#ffd700", "#ff6b35"]
-                    scores = ["1", "2", "4", "6"]
-                    fill_color = colors[min(level-1, 3)]
-                    score = scores[min(level-1, 3)]
-                    
-                    dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), 
-                                   fill=fill_color, rx=1, opacity=0.8))
-                    
-                    # Score number
-                    dwg.add(dwg.text(score, insert=(x + box_size//2, y + box_size//2 + 2), 
-                                   font_size="7px", fill="#000000", text_anchor="middle", 
-                                   font_weight="bold", opacity=0.6))
-                    
-                    # Glow for sixes
-                    if level == 4:
-                        dwg.add(dwg.rect(insert=(x-1, y-1), size=(box_size+2, box_size+2), 
-                                       fill="none", stroke="#ff6b35", stroke_width=1, 
-                                       rx=2, opacity=0.5))
-        
-        # Cricket bat
-        bat_x = width - 60
-        bat_y = height - 50
-        dwg.add(dwg.rect(insert=(bat_x, bat_y - 25), size=(4, 25), fill="#8b4513", rx=1))
-        dwg.add(dwg.rect(insert=(bat_x - 6, bat_y), size=(16, 35), fill="#d2691e", rx=2))
-        
-        # Cricket ball
-        ball_x = bat_x + 30
-        ball_y = bat_y + 15
-        dwg.add(dwg.circle(center=(ball_x, ball_y), r=5, fill="#cc0000"))
-        
-        # Wickets
-        wicket_x = 25
-        wicket_y = height - 40
-        for i in range(3):
-            dwg.add(dwg.rect(insert=(wicket_x + i * 4, wicket_y), size=(2, 25), fill="#f5deb3"))
-        dwg.add(dwg.rect(insert=(wicket_x - 1, wicket_y - 2), size=(11, 2), fill="#8b4513", rx=1))
-        
-        # Scoreboard
-        total_commits = sum([random.randint(0, 10) for _ in range(30)])
-        dwg.add(dwg.text(f"RUNS: {total_commits}", insert=(width - 110, 30), 
-                        font_size="12px", font_family="monospace", fill="#00ff00", 
-                        font_weight="bold"))
-
-        box_size = 6
-        gap = 3
-        start_x = 26
-        start_y = 70
-        cells = _weeks_to_cells(weeks, cols, rows, max_date)
-        max_count = max((cell["count"] for cell in cells if not cell["is_future"]), default=0)
-        positions = _grid_positions(cols, rows, start_x, start_y, box_size, gap)
-
-        for idx, (x, y) in enumerate(positions):
-            cell = cells[idx] if idx < len(cells) else None
-            if not cell or cell.get("is_future"):
-                continue
-
-            count = cell.get("count", 0)
-            if count <= 0:
-                dwg.add(dwg.circle(center=(x + 3, y + 3), r=1.4, fill=theme.get("text_color", "#66ddaa"), opacity=0.6))
-                continue
-
-            intensity = 0 if max_count == 0 else count / max_count
-            fish_w = 8 + int(6 * intensity)
-            fish_h = 4 + int(4 * intensity)
-
-            body = f"M{x},{y} L{x + fish_w},{y - fish_h} L{x + fish_w},{y + fish_h} Z"
-            dwg.add(dwg.path(d=body, fill=theme.get("icon_color", "#2288cc"), opacity=0.9))
-            if intensity > 0.6:
-                fin = f"M{x + fish_w // 2},{y} L{x + fish_w - 2},{y - 3} L{x + fish_w - 2},{y + 3} Z"
-                dwg.add(dwg.path(d=fin, fill=theme.get("icon_color", "#2288cc"), opacity=0.9))
     elif original_theme_name == "Glass":
         # Neon Liquid Glassmorphism Theme (from main branch)
         
@@ -707,86 +454,59 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None):
                 dwg.add(dwg.circle(center=(cx - r * 0.3, cy - r * 0.4), r=r * 0.45, fill="#ffffff", fill_opacity=0.35))
             else:
                 dwg.add(dwg.circle(center=(cx, cy), r=r, fill="#ffffff", opacity=0.1))
+
     elif original_theme_name == "Neural":
+        # Neural/Brain visualization with contribution-based neurons
         cx = width / 2
         cy = height / 2 + 10
 
-        contributions = data.get("contributions", [])[-80:]
-        if not contributions:
+        contributions_subset = contributions[-80:]
+        if not contributions_subset:
             return dwg.tostring()
 
         nodes = []
 
         # --- Brain core glow ---
         dwg.add(dwg.circle(center=(cx, cy), r=45, fill="#00f7ff", opacity=0.08))
-        dwg.add(dwg.text(
-            "Contributions",
-            insert=(cx, cy + 5),
-            text_anchor="middle",
-            fill="#00f7ff",
-            font_size="12px",
-            font_family="Courier New",
-            opacity=0.8
-        ))
+        dwg.add(dwg.text("Contributions", insert=(cx, cy + 5), text_anchor="middle",
+                         fill="#00f7ff", font_size="12px", font_family="Courier New", opacity=0.8))
 
         # --- Generate brain-shaped neuron positions ---
-        for i, day in enumerate(contributions):
+        for i, day in enumerate(contributions_subset):
             count = day.get("count", 0)
-
-            # Hemisphere split
             side = -1 if i % 2 == 0 else 1
 
-            # Organic brain ellipse (deterministic)
-            angle = (i / max(len(contributions), 1)) * math.pi
+            # Deterministic brain ellipse
+            angle = (i / max(len(contributions_subset), 1)) * math.pi
             radius_x = 90 + (i % 10) * 6
             radius_y = 60 + (i % 7) * 6
-
-            # Distortion noise derived from count
             noise = 0.9 + ((count % 5) * 0.03)
 
             x = cx + side * math.cos(angle) * radius_x * noise
             y = cy + math.sin(angle) * radius_y * noise
 
-            # Visual weight
             size = 2 + min(count, 10)
             brightness = min(255, 80 + count * 18)
             color = f"rgb(0,{brightness},255)"
 
-            dwg.add(dwg.circle(
-                center=(x, y),
-                r=size,
-                fill=color,
-                opacity=0.9
-            ))
-
+            dwg.add(dwg.circle(center=(x, y), r=size, fill=color, opacity=0.9))
             nodes.append((x, y, count))
 
         # --- Synapse connections ---
         for i in range(len(nodes)):
             x1, y1, c1 = nodes[i]
-
             for step in (1, 3, 7):
                 j = i + step
                 if j >= len(nodes):
                     continue
-
                 x2, y2, c2 = nodes[j]
-
                 dist = math.hypot(x2 - x1, y2 - y1)
-
                 if dist < 140:
                     opacity = min((c1 + c2) / 20, 0.5)
+                    dwg.add(dwg.line(start=(x1, y1), end=(x2, y2), stroke="#00f7ff", stroke_width=1, opacity=opacity))
 
-                    dwg.add(dwg.line(
-                        start=(x1, y1),
-                        end=(x2, y2),
-                        stroke="#00f7ff",
-                        stroke_width=1,
-                        opacity=opacity
-                    ))
     else:
-        # Default Grid (Github Style)
-        # Just simple squares
+        # Default Grid (GitHub Style)
         box_size = 7
         gap = 2
         start_x = 26
@@ -808,4 +528,3 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None):
             dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), fill=fill, rx=2, ry=2))
                 
     return dwg.tostring()
-

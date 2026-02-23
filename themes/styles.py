@@ -1,13 +1,147 @@
 
+THEMES = {
+    "Default": {
+        "bg_color": "#0d1117",
+        "border_color": "#30363d",
+        "title_color": "#58a6ff",
+        "text_color": "#c9d1d9",
+        "icon_color": "#8b949e",
+        "font_family": "Segoe UI, Ubuntu, Sans-Serif",
+        "title_font_size": 20,
+        "text_font_size": 14
+    },
+    "Gaming": {
+        "bg_color": "#0d0d0d",
+        "border_color": "#00ff00",
+        "title_color": "#00ff00",
+        "text_color": "#00ff00",
+        "icon_color": "#00aa00",
+        "font_family": "'Courier New', Courier, monospace",
+        "title_font_size": 18,
+        "text_font_size": 14,
+        "is_pixel": True
+    },
+    "Marvel": {
+        "bg_color": "#1a1a1a",
+        "border_color": "#e23636",
+        "title_color": "#f78f3f",
+        "text_color": "#ffffff",
+        "icon_color": "#e23636",
+        "font_family": "Impact, sans-serif",
+        "title_font_size": 22,
+        "text_font_size": 14
+    },
+    "Space": {
+        "bg_color": "#0b0c1f",
+        "border_color": "#6e5cdb",
+        "title_color": "#a371f7",
+        "text_color": "#d0dfff",
+        "icon_color": "#39d353",
+        "font_family": "Verdana, Geneva, sans-serif",
+        "title_font_size": 18,
+        "text_font_size": 14
+    },
+    "Dracula": {
+        "bg_color": "#282a36",
+        "border_color": "#bd93f9",
+        "title_color": "#ff79c6",
+        "text_color": "#f8f8f2",
+        "icon_color": "#50fa7b",
+        "font_family": "Segoe UI, Ubuntu, Sans-Serif",
+        "title_font_size": 20,
+        "text_font_size": 14
+    },
+    "Neural": {
+    "bg_color": "#0a0f14",        
+    "border_color": "#1f6feb",    
+    "title_color": "#00e5ff",    
+    "text_color": "#9be7ff",      
+    "icon_color": "#00bcd4",      
+    "font_family": "'Consolas', 'Lucida Console', monospace",
+    "title_font_size": 19,
+    "text_font_size": 14
+    },
+    "Pacman": {
+        "bg_color": "#000000",
+        "border_color": "#1919a6",
+        "title_color": "#ffff00",
+        "text_color": "#ffffff",
+        "icon_color": "#ff8c00",
+        "font_family": "'Courier New', Courier, monospace",
+        "title_font_size": 18,
+        "text_font_size": 14
+    },
+    "Cyberpunk": {
+        "bg_color": "#0a0e27",
+        "border_color": "#00ff41",
+        "title_color": "#00ffff",
+        "text_color": "#ffffff",
+        "icon_color": "#ff00ff",
+        "font_family": "'Courier New', monospace",
+        "title_font_size": 18,
+        "text_font_size": 14
+    }
+}
 import json
 import os
 
-THEMES = {}
 
 themes_dir = os.path.join(os.path.dirname(__file__), 'json')
-if os.path.exists(themes_dir):
-    for filename in os.listdir(themes_dir):
-        if filename.endswith('.json'):
-            theme_name = filename[:-5].capitalize()  # Remove .json and capitalize
-            with open(os.path.join(themes_dir, filename), 'r') as f:
-                THEMES[theme_name] = json.load(f)
+
+def load_predefined_themes():
+    """Load predefined themes from JSON files"""
+    if os.path.exists(themes_dir):
+        for filename in os.listdir(themes_dir):
+            if filename.endswith('.json') and not filename.startswith('custom_'):
+                theme_name = filename[:-5].capitalize()  # Remove .json and capitalize
+                with open(os.path.join(themes_dir, filename), 'r') as f:
+                    THEMES[theme_name] = json.load(f)
+
+def load_custom_themes():
+    """Load custom themes from custom_*.json files"""
+    custom_themes = {}
+    if os.path.exists(themes_dir):
+        for filename in os.listdir(themes_dir):
+            if filename.startswith('custom_') and filename.endswith('.json'):
+                # Extract theme name from custom_{name}.json
+                theme_name = filename[7:-5].capitalize()  # Remove 'custom_' and '.json'
+                with open(os.path.join(themes_dir, filename), 'r') as f:
+                    custom_themes[theme_name] = json.load(f)
+    return custom_themes
+
+def save_custom_theme(theme_name, theme_data):
+    """Save a custom theme to a JSON file"""
+    # Sanitize theme name for filename
+    safe_name = theme_name.lower().replace(' ', '_').replace('-', '_')
+    filename = f"custom_{safe_name}.json"
+    filepath = os.path.join(themes_dir, filename)
+    
+    with open(filepath, 'w') as f:
+        json.dump(theme_data, f, indent=4)
+    
+    return filename
+
+def get_all_themes():
+    """Get all themes including custom ones"""
+    all_themes = THEMES.copy()
+    all_themes.update(CUSTOM_THEMES)
+    return all_themes
+
+# Load predefined themes on module import
+load_predefined_themes()
+
+
+# Manually add Ocean theme with ocean-themed colors
+THEMES["Ocean"] = {
+    "bg_color": "#001122",
+    "border_color": "#004466",
+    "title_color": "#00aaff",
+    "text_color": "#66ddaa",
+    "icon_color": "#2288cc",
+    "font_family": "Segoe UI, Ubuntu, Sans-Serif",
+    "title_font_size": 20,
+    "text_font_size": 14
+}
+
+# Load custom themes on module import
+CUSTOM_THEMES = load_custom_themes()

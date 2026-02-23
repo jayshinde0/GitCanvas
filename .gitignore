@@ -20,6 +20,10 @@ wheels/
 .installed.cfg
 *.egg
 
+# Virtual environments
+.env
+venv/
+
 # Virtual Environments
 venv/
 env/
@@ -51,3 +55,8 @@ desktop.ini
 
 # Logs
 *.log
+
+.env
+.env.text
+.env.example
+.env.* 
