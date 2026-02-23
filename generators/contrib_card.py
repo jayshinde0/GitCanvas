@@ -3,6 +3,7 @@ import svgwrite
 import random
 from themes.styles import THEMES
 from datetime import date, datetime, timedelta
+from .svg_base import CSS_ANIMATIONS
 
 
 def _levels_from_cells(cells, max_count):
@@ -181,7 +182,7 @@ def _add_timeline_labels(dwg, weeks, cols, rows, start_x, start_y, box_size, gap
             font_family=theme["font_family"],
             opacity=0.8
         ))
-def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range=None):
+def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range=None, animations_enabled=True):
     """
     Generates the Contribution Graph Card SVG.
     Supports 'Snake', 'Space', 'Marvel' visualization logic.
@@ -192,6 +193,7 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
         custom_colors: Optional dict of custom color overrides
         date_range: Optional dict with 'start' and 'end' date strings (YYYY-MM-DD)
                     to filter contributions. If None, shows all contributions.
+        animations_enabled: Whether to enable CSS animations
     """
     # Save original theme name for comparison (fix from main branch)
     original_theme_name = theme_name

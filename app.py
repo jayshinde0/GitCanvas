@@ -66,6 +66,9 @@ with st.sidebar:
     
     selected_theme = st.selectbox("Select Theme", theme_options)
     
+    # Animation Toggle
+    animations_enabled = st.checkbox("✨ Enable Animations", value=True, help="Toggle CSS animations on SVG cards")
+    
     # Customization Expander
     # Ensure custom_colors exists even if the expander isn't opened
     custom_colors = {}
@@ -100,6 +103,7 @@ with st.sidebar:
                 "title_color": "#58a6ff",
                 "text_color": "#c9d1d9",
                 "icon_color": "#8b949e"
+            }
         col1, col2 = st.columns(2)
         with col1:
             new_bg = st.color_picker("Background", value=st.session_state.custom_theme_colors["bg_color"], key="new_bg")
@@ -274,7 +278,7 @@ with tab1:
     show_ops = {"stars": show_stars, "commits": show_commits, "repos": show_repos, "followers": show_followers}
 
     # Pass selected_theme string to support theme-specific logic (e.g. Glass)
-    svg_bytes = stats_card.draw_stats_card(data, selected_theme, show_ops, custom_colors)
+    svg_bytes = stats_card.draw_stats_card(data, selected_theme, show_ops, custom_colors, animations_enabled)
     render_tab(svg_bytes, "stats", username, selected_theme, custom_colors, hide_params=show_ops, code_template=f"[![{username}'s Stats]({{url}})](https://github.com/{{username}})")
 
 with tab2:
@@ -367,7 +371,7 @@ with tab4:
     # All Time returns None, showing all contributions
 
     # Pass selected_theme string and date_range
-    svg_bytes = contrib_card.draw_contrib_card(data, selected_theme, custom_colors, date_range=date_range)
+    svg_bytes = contrib_card.draw_contrib_card(data, selected_theme, custom_colors, date_range=date_range, animations_enabled=animations_enabled)
     render_tab(svg_bytes, "contributions", username, selected_theme, custom_colors, code_template="![Contributions]({url})")
 
 with tab5:
