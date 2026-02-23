@@ -330,8 +330,44 @@ with tab4:
     elif selected_theme == "Ocean": st.caption("🌊 Ocean Mode: Fish and bubbles swim through underwater contributions.")
     elif selected_theme == "Glass": st.caption("💎 GlassMorphism: Translucent Glass based theme card.")
 
-    # Pass selected_theme string
-    svg_bytes = contrib_card.draw_contrib_card(data, selected_theme, custom_colors)
+    # Date Range Selector
+    from datetime import datetime, timedelta
+    today = datetime.utcnow().date()
+    
+    col_date1, col_date2 = st.columns([1, 1])
+    with col_date1:
+        date_option = st.selectbox(
+            "Date Range",
+            ["All Time", "Last 6 Months", "Current Year", "Custom Range"],
+            index=0,
+            help="Select the date range for contributions"
+        )
+    
+    # Initialize date_range
+    date_range = None
+    
+    if date_option == "Custom Range":
+        with col_date2:
+            custom_start = st.date_input("Start Date", value=today - timedelta(days=180))
+            custom_end = st.date_input("End Date", value=today)
+        date_range = {
+            'start': custom_start.strftime("%Y-%m-%d"),
+            'end': custom_end.strftime("%Y-%m-%d")
+        }
+    elif date_option == "Last 6 Months":
+        date_range = {
+            'start': (today - timedelta(days=180)).strftime("%Y-%m-%d"),
+            'end': today.strftime("%Y-%m-%d")
+        }
+    elif date_option == "Current Year":
+        date_range = {
+            'start': datetime(today.year, 1, 1).date().strftime("%Y-%m-%d"),
+            'end': today.strftime("%Y-%m-%d")
+        }
+    # All Time returns None, showing all contributions
+
+    # Pass selected_theme string and date_range
+    svg_bytes = contrib_card.draw_contrib_card(data, selected_theme, custom_colors, date_range=date_range)
     render_tab(svg_bytes, "contributions", username, selected_theme, custom_colors, code_template="![Contributions]({url})")
 
 with tab5:

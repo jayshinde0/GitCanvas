@@ -234,3 +234,88 @@ def get_mock_data(username):
         ]
 
     }
+
+
+def filter_contributions_by_date(contributions, date_range):
+    """
+    Filter contributions by date range.
+    
+    Args:
+        contributions: List of contribution dicts with 'date' and 'count' keys
+        date_range: Dict with 'start' and 'end' date strings (YYYY-MM-DD format)
+                    or None for all time
+    
+    Returns:
+        Filtered list of contributions
+    """
+    if not contributions or not date_range:
+        return contributions
+    
+    start_date = date_range.get('start')
+    end_date = date_range.get('end')
+    
+    if not start_date or not end_date:
+        return contributions
+    
+    try:
+        from datetime import datetime
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return contributions
+    
+    filtered = []
+    for item in contributions:
+        item_date = item.get('date')
+        if not item_date:
+            continue
+        try:
+            parsed_date = datetime.strptime(item_date, "%Y-%m-%d").date()
+            if start <= parsed_date <= end:
+                filtered.append(item)
+        except (ValueError, TypeError):
+            continue
+    
+    return filtered
+
+
+def get_date_range_from_option(date_option, custom_start=None, custom_end=None):
+    """
+    Get date range based on predefined options or custom range.
+    
+    Args:
+        date_option: One of 'all_time', 'last_6_months', 'current_year', 'custom'
+        custom_start: Start date for custom range (YYYY-MM-DD)
+        custom_end: End date for custom range (YYYY-MM-DD)
+    
+    Returns:
+        Dict with 'start' and 'end' date strings, or None for all time
+    """
+    from datetime import datetime, timedelta
+    
+    today = datetime.utcnow().date()
+    
+    if date_option == 'all_time' or date_option == 'all':
+        return None
+    
+    elif date_option == 'last_6_months' or date_option == '6months':
+        start = today - timedelta(days=180)
+        return {
+            'start': start.strftime("%Y-%m-%d"),
+            'end': today.strftime("%Y-%m-%d")
+        }
+    
+    elif date_option == 'current_year' or date_option == 'year':
+        start = datetime(today.year, 1, 1).date()
+        return {
+            'start': start.strftime("%Y-%m-%d"),
+            'end': today.strftime("%Y-%m-%d")
+        }
+    
+    elif date_option == 'custom' and custom_start and custom_end:
+        return {
+            'start': custom_start,
+            'end': custom_end
+        }
+    
+    return None
