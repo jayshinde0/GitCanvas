@@ -104,8 +104,7 @@ def draw_social_card(social_data, theme_name="Default", custom_colors=None, sele
     height = header_height + content_height + footer_height
     
     # Create SVG
-    dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}", debug=False)
-    dwg.validator = None  # Disable validator for custom attributes
+    dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}")
     
     # Background
     dwg.add(dwg.rect(

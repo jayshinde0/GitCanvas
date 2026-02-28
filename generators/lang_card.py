@@ -60,8 +60,7 @@ def draw_lang_card(data, theme_name="Default", custom_colors=None, excluded_lang
         item_spacing = 45
         height = margin + header_height + (len(langs) * item_spacing) + margin
         
-        dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}", debug=False)
-        dwg.validator = None  # Disable validator for custom attributes
+        dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}")
         
         # Theme Variables
         bg_col = theme.get("bg_color", "#050511")
@@ -105,8 +104,7 @@ def draw_lang_card(data, theme_name="Default", custom_colors=None, excluded_lang
 
     else:
         # DEFAULT / OTHER THEMES
-        dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}", debug=False)
-        dwg.validator = None  # Disable validator for custom attributes
+        dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}")
         
         # Background
         dwg.add(dwg.rect(insert=(0, 0), size=("100%", "100%"), rx=10, ry=10, 

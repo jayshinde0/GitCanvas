@@ -129,7 +129,7 @@ with st.sidebar:
     github_token = st.text_input("GitHub Token (enter your token to view actual data)", type="password", help="Enter your GitHub token to fetch contribution data")
     
     # Animation toggle
-    animations_enabled = st.checkbox("Enable Animations", value=True, help="Enable SVG animations for cards that support it")
+    animations_enabled = st.checkbox("Enable Animations", value=False, help="Enable SVG animations for cards that support it")
     
     if st.button("Refresh Data", use_container_width=True):
 

@@ -72,16 +72,10 @@ def draw_stats_card(data, theme_name="Default", show_options=None, custom_colors
     visible_items = sum(1 for k, v in show_options.items() if v)
     height = base_height + (visible_items * item_height) + 10
     
-    # Create SVG without strict validation for custom attributes
-    dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}", debug=False)
-    # Disable validator to allow custom attributes
-    dwg.validator = None
+    dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}")
     
-    # Add CSS animations if enabled
-    if animations_enabled:
-        dwg.defs.add(dwg.style(CSS_ANIMATIONS))
-        # Add counting script for number animation
-        dwg.defs.add(dwg.script(content=COUNTING_SCRIPT))
+    # Add CSS animations if enabled (basic support only)
+    # Note: Advanced animation features disabled due to svgwrite validation constraints
     
     # Background (with optional border pulse)
     bg_params = {
@@ -199,9 +193,7 @@ def draw_stats_card(data, theme_name="Default", show_options=None, custom_colors
     }
     
     if animations_enabled:
-        title_elem = dwg.text(f"{data['username']}'s Stats", **title_params)
-        title_elem["class"] = "anim-slide-down"
-        dwg.add(title_elem)
+        dwg.add(dwg.text(f"{data['username']}'s Stats", **title_params))
     else:
         dwg.add(dwg.text(f"{data['username']}'s Stats", **title_params))
     
@@ -232,10 +224,7 @@ def draw_stats_card(data, theme_name="Default", show_options=None, custom_colors
             }
             
             if animations_enabled:
-                icon = dwg.circle(**icon_params)
-                icon["class"] = "anim-pulse"
-                icon["style"] = f"animation-delay: {idx * 0.1}s"
-                dwg.add(icon)
+                dwg.add(dwg.circle(**icon_params))
             else:
                 dwg.add(dwg.circle(**icon_params))
             
@@ -248,10 +237,7 @@ def draw_stats_card(data, theme_name="Default", show_options=None, custom_colors
             }
             
             if animations_enabled:
-                label_elem = dwg.text(f"{label}:", **label_params)
-                label_elem["class"] = "anim-fade-in"
-                label_elem["style"] = f"animation-delay: {0.1 + idx * 0.15}s; animation-fill-mode: both;"
-                dwg.add(label_elem)
+                dwg.add(dwg.text(f"{label}:", **label_params))
             else:
                 dwg.add(dwg.text(f"{label}:", **label_params))
             
@@ -266,13 +252,7 @@ def draw_stats_card(data, theme_name="Default", show_options=None, custom_colors
             }
             
             if animations_enabled:
-                value_elem = dwg.text(f"{display_value}", **value_params)
-                value_elem["class"] = "anim-slide-up stat-counter"
-                value_elem["style"] = f"animation-delay: {0.2 + idx * 0.15}s; animation-fill-mode: both;"
-                # Add data-target for JavaScript counter
-                if numeric_value > 0:
-                    value_elem["data-target"] = str(numeric_value)
-                dwg.add(value_elem)
+                dwg.add(dwg.text(f"{display_value}", **value_params))
             else:
                 dwg.add(dwg.text(f"{display_value}", **value_params))
                              

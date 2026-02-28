@@ -96,8 +96,7 @@ def draw_recent_activity_card(data, theme_name="Default", custom_colors=None, to
 def _render_svg_lines(lines, theme):
     width = 520
     height = 120
-    dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}", debug=False)
-    dwg.validator = None  # Disable validator for custom attributes
+    dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}")
 
     dwg.add(dwg.rect(insert=(0, 0), size=(width, height), rx=8, ry=8,
                      fill=theme["bg_color"], stroke=theme["border_color"], stroke_width=2))
