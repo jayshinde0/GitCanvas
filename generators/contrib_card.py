@@ -546,42 +546,51 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
                            fill="none", stroke="#ffffff", stroke_width=2, 
                            stroke_dasharray="5,5", opacity=0.4))
         
-        # Contribution boxes as runs
-        box_size = 9
+        # Contribution boxes as runs - using ACTUAL GitHub data
+        box_size = 7
         gap = 2
-        start_x = 20
-        start_y = 60
+        start_x = 26
+        start_y = 72
         
-        for col in range(38):
-            for row in range(6):
-                x = start_x + col * (box_size + gap)
-                y = start_y + row * (box_size + gap)
+        # Get actual contribution data
+        cells = _weeks_to_cells(weeks, cols, rows, max_date)
+        max_count = max((cell["count"] for cell in cells if not cell["is_future"]), default=0)
+        levels = _levels_from_cells(cells, max_count)
+        positions = _grid_positions(cols, rows, start_x, start_y, box_size, gap)
+        
+        # Add timeline labels
+        _add_timeline_labels(dwg, weeks, cols, rows, start_x, start_y, box_size, gap, theme)
+        
+        # Draw contribution grid with cricket scoring
+        for idx, (x, y) in enumerate(positions):
+            level = levels[idx]
+            if level is None:
+                continue
                 
-                level = random.choice([0, 1, 2, 3, 4])
-                if level == 0:
-                    # Duck (out)
-                    dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), 
-                                   fill="#8b4513", rx=1, opacity=0.3))
-                else:
-                    # Runs: 1, 2, 4, 6
-                    colors = ["#90ee90", "#7fbf7f", "#ffd700", "#ff6b35"]
-                    scores = ["1", "2", "4", "6"]
-                    fill_color = colors[min(level-1, 3)]
-                    score = scores[min(level-1, 3)]
-                    
-                    dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), 
-                                   fill=fill_color, rx=1, opacity=0.8))
-                    
-                    # Score number
-                    dwg.add(dwg.text(score, insert=(x + box_size//2, y + box_size//2 + 2), 
-                                   font_size="7px", fill="#000000", text_anchor="middle", 
-                                   font_weight="bold", opacity=0.6))
-                    
-                    # Glow for sixes
-                    if level == 4:
-                        dwg.add(dwg.rect(insert=(x-1, y-1), size=(box_size+2, box_size+2), 
-                                       fill="none", stroke="#ff6b35", stroke_width=1, 
-                                       rx=2, opacity=0.5))
+            if level == 0:
+                # Duck (out) - no contributions
+                dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), 
+                               fill="#8b4513", rx=1, opacity=0.3))
+            else:
+                # Runs: 1, 2, 4, 6 based on contribution levels
+                colors = ["#90ee90", "#7fbf7f", "#ffd700", "#ff6b35"]
+                scores = ["1", "2", "4", "6"]
+                fill_color = colors[min(level-1, 3)]
+                score = scores[min(level-1, 3)]
+                
+                dwg.add(dwg.rect(insert=(x, y), size=(box_size, box_size), 
+                               fill=fill_color, rx=1, opacity=0.8))
+                
+                # Score number
+                dwg.add(dwg.text(score, insert=(x + box_size//2, y + box_size//2 + 2), 
+                               font_size="6px", fill="#000000", text_anchor="middle", 
+                               font_weight="bold", opacity=0.6))
+                
+                # Glow for sixes (highest contribution level)
+                if level == 4:
+                    dwg.add(dwg.rect(insert=(x-1, y-1), size=(box_size+2, box_size+2), 
+                                   fill="none", stroke="#ff6b35", stroke_width=1, 
+                                   rx=2, opacity=0.5))
         
         # Cricket bat
         bat_x = width - 60
@@ -601,12 +610,36 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
             dwg.add(dwg.rect(insert=(wicket_x + i * 4, wicket_y), size=(2, 25), fill="#f5deb3"))
         dwg.add(dwg.rect(insert=(wicket_x - 1, wicket_y - 2), size=(11, 2), fill="#8b4513", rx=1))
         
-        # Scoreboard
-        total_commits = sum([random.randint(0, 10) for _ in range(30)])
+        # Scoreboard will show actual total commits
+        total_commits = data.get('total_commits', 0)
         dwg.add(dwg.text(f"RUNS: {total_commits}", insert=(width - 110, 30), 
                         font_size="12px", font_family="monospace", fill="#00ff00", 
                         font_weight="bold"))
-
+    
+    elif theme_name == "Ocean":
+        # Ocean underwater theme with fish representing contributions
+        # Background waves at top
+        wave_path = "M0,45 Q60,35 120,45 T240,45 T360,45 T480,45 T500,45 L500,0 L0,0 Z"
+        dwg.add(dwg.path(d=wave_path, fill=theme.get("border_color", "#004466"), opacity=0.5))
+        
+        # Coral reefs at bottom
+        coral_y = height - 25
+        dwg.add(dwg.path(d=f"M50,{coral_y} Q70,{coral_y-15} 90,{coral_y} Q110,{coral_y-12} 130,{coral_y} Z", 
+                        fill="#8B4513", opacity=0.6))
+        dwg.add(dwg.path(d=f"M200,{coral_y} Q220,{coral_y-18} 240,{coral_y} Q260,{coral_y-14} 280,{coral_y} Z", 
+                        fill="#A0522D", opacity=0.6))
+        dwg.add(dwg.path(d=f"M350,{coral_y} Q370,{coral_y-16} 390,{coral_y} Q410,{coral_y-13} 430,{coral_y} Z", 
+                        fill="#8B4513", opacity=0.6))
+        
+        # Bubbles floating up
+        for i in range(8):
+            bubble_x = 40 + i * 60
+            bubble_y = 55 + (i % 3) * 12
+            dwg.add(dwg.circle(center=(bubble_x, bubble_y), r=2, fill="#66ddaa", opacity=0.4))
+            dwg.add(dwg.circle(center=(bubble_x, bubble_y), r=3, fill="none", stroke="#66ddaa", 
+                             stroke_width=0.5, opacity=0.3))
+        
+        # Contribution grid as fish
         box_size = 6
         gap = 3
         start_x = 26
@@ -614,7 +647,11 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
         cells = _weeks_to_cells(weeks, cols, rows, max_date)
         max_count = max((cell["count"] for cell in cells if not cell["is_future"]), default=0)
         positions = _grid_positions(cols, rows, start_x, start_y, box_size, gap)
-
+        
+        # Add timeline labels
+        _add_timeline_labels(dwg, weeks, cols, rows, start_x, start_y, box_size, gap, theme)
+        
+        # Draw fish based on contribution intensity
         for idx, (x, y) in enumerate(positions):
             cell = cells[idx] if idx < len(cells) else None
             if not cell or cell.get("is_future"):
@@ -622,18 +659,39 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
 
             count = cell.get("count", 0)
             if count <= 0:
-                dwg.add(dwg.circle(center=(x + 3, y + 3), r=1.4, fill=theme.get("text_color", "#66ddaa"), opacity=0.6))
+                # Empty cell - small bubble
+                dwg.add(dwg.circle(center=(x + 3, y + 3), r=1.4, 
+                                 fill=theme.get("text_color", "#66ddaa"), opacity=0.5))
                 continue
 
+            # Fish size based on contribution intensity
             intensity = 0 if max_count == 0 else count / max_count
             fish_w = 8 + int(6 * intensity)
             fish_h = 4 + int(4 * intensity)
+            
+            # Fish colors based on intensity
+            if intensity < 0.25:
+                fish_color = "#5599cc"
+            elif intensity < 0.5:
+                fish_color = "#4488bb"
+            elif intensity < 0.75:
+                fish_color = "#2277aa"
+            else:
+                fish_color = "#0066aa"
 
+            # Fish body (triangle)
             body = f"M{x},{y} L{x + fish_w},{y - fish_h} L{x + fish_w},{y + fish_h} Z"
-            dwg.add(dwg.path(d=body, fill=theme.get("icon_color", "#2288cc"), opacity=0.9))
+            dwg.add(dwg.path(d=body, fill=fish_color, opacity=0.9))
+            
+            # Add fin for high activity fish
             if intensity > 0.6:
                 fin = f"M{x + fish_w // 2},{y} L{x + fish_w - 2},{y - 3} L{x + fish_w - 2},{y + 3} Z"
-                dwg.add(dwg.path(d=fin, fill=theme.get("icon_color", "#2288cc"), opacity=0.9))
+                dwg.add(dwg.path(d=fin, fill=fish_color, opacity=0.9))
+                
+                # Eye dot for biggest fish
+                if intensity > 0.8:
+                    dwg.add(dwg.circle(center=(x + fish_w - 3, y), r=0.7, fill="#ffffff", opacity=0.8))
+    
     elif original_theme_name == "Glass":
         # Neon Liquid Glassmorphism Theme (from main branch)
         
