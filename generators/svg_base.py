@@ -174,9 +174,7 @@ def create_svg_base(theme_name, custom_colors, width, height, title_text, animat
     
     dwg = svgwrite.Drawing(size=(f"{width}px", f"{height}px"))
     
-    # Add CSS animations if enabled
-    if animations_enabled:
-        style = dwg.defs.add(dwg.style(CSS_ANIMATIONS))
+    # Note: CSS animations disabled due to svgwrite validation constraints
     
     # Background with optional border pulse animation
     bg_params = {
@@ -190,10 +188,7 @@ def create_svg_base(theme_name, custom_colors, width, height, title_text, animat
     }
     
     if animations_enabled:
-        # Add class for border pulse animation
-        bg_rect = dwg.rect(**bg_params)
-        bg_rect["class"] = "anim-border-pulse"
-        dwg.add(bg_rect)
+        dwg.add(dwg.rect(**bg_params))
     else:
         dwg.add(dwg.rect(**bg_params))
     
@@ -207,9 +202,7 @@ def create_svg_base(theme_name, custom_colors, width, height, title_text, animat
     }
     
     if animations_enabled:
-        title_text_elem = dwg.text(title_text, **title_params)
-        title_text_elem["class"] = "anim-slide-down"
-        dwg.add(title_text_elem)
+        dwg.add(dwg.text(title_text, **title_params))
     else:
         dwg.add(dwg.text(title_text, **title_params))
     
