@@ -54,13 +54,7 @@ def draw_lang_card(data, theme_name="Default", custom_colors=None, excluded_lang
 
     
     if theme_name == "Glass":
-        margin = 25
-        # Recalculate height: Margin + Header + Items + Item Padding + Margin
-        header_height = 80
-        item_spacing = 45
-        height = margin + header_height + (len(langs) * item_spacing) + margin
-        
-        dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}")
+        # Neon Liquid Glassmorphism Theme (Enhanced)
         
         # Theme Variables
         bg_col = theme.get("bg_color", "#050511")
@@ -69,38 +63,88 @@ def draw_lang_card(data, theme_name="Default", custom_colors=None, excluded_lang
         border_col = theme.get("border_color", "white")
         
         # 1. Definitions
+        dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}")
+        
+        # Blur filter for background blobs
         blob_blur = dwg.filter(id="blobBlur", x="-50%", y="-50%", width="200%", height="200%")
         blob_blur.feGaussianBlur(in_="SourceGraphic", stdDeviation=40)
         dwg.defs.add(blob_blur)
         
+        # Glow filter for text
+        text_glow = dwg.filter(id="textGlow")
+        text_glow.feGaussianBlur(in_="SourceAlpha", stdDeviation=2, result="blur")
+        text_glow.feOffset(in_="blur", dx=0, dy=0, result="offsetBlur")
+        text_glow.feFlood(flood_color=title_col, result="glowColor")
+        text_glow.feComposite(in_="glowColor", in2="offsetBlur", operator="in", result="coloredBlur")
+        text_glow.feMerge(["coloredBlur", "SourceGraphic"])
+        dwg.defs.add(text_glow)
+        
+        # Glass Panel Gradient
+        glass_grad = dwg.linearGradient(start=(0, 0), end=(1, 1), id="glassGrad")
+        glass_grad.add_stop_color(0, "white", opacity=0.15)
+        glass_grad.add_stop_color(1, "white", opacity=0.05)
+        dwg.defs.add(glass_grad)
+        
+        # Border Gradient
+        border_grad = dwg.linearGradient(start=(0, 0), end=(1, 1), id="borderGrad")
+        border_grad.add_stop_color(0, border_col, opacity=0.4)
+        border_grad.add_stop_color(1, border_col, opacity=0.1)
+        dwg.defs.add(border_grad)
+
         # Background Base
         dwg.add(dwg.rect(insert=(0, 0), size=("100%", "100%"), rx=16, ry=16, fill=bg_col))
 
-        # Title
-        dwg.add(dwg.text("Top Languages", insert=(40, 55), fill=title_col, font_size=24, font_weight="bold", font_family="Segoe UI, sans-serif"))
+        # Neon Blobs
+        dwg.add(dwg.circle(center=(0, 0), r=120, fill="#ff00ff", filter="url(#blobBlur)", opacity=0.5))
+        dwg.add(dwg.circle(center=(width, height), r=140, fill="#00ffff", filter="url(#blobBlur)", opacity=0.4))
+
+        # 2. Glass Panel
+        margin = 15
+        p_width = width - margin * 2
+        p_height = height - margin * 2
+        dwg.add(dwg.rect(insert=(margin, margin), size=(p_width, p_height), rx=16, ry=16, fill="#000000", opacity=0.3))
+        dwg.add(dwg.rect(insert=(margin, margin), size=(p_width, p_height), rx=16, ry=16, 
+                         fill="url(#glassGrad)", stroke="url(#borderGrad)", stroke_width=1.2))
+        
+        # Top Reflection
+        reflection_grad = dwg.linearGradient(start=(0, 0), end=(0, 1), id="reflGrad")
+        reflection_grad.add_stop_color(0, "white", opacity=0.08)
+        reflection_grad.add_stop_color(1, "white", opacity=0)
+        dwg.defs.add(reflection_grad)
+        dwg.add(dwg.rect(insert=(margin + 4, margin + 4), size=(p_width - 8, p_height / 4), rx=12, ry=12, fill="url(#reflGrad)"))
+
+        # 3. Content
+        dwg.add(dwg.text("Top Languages".upper(), insert=(width/2, margin + 35), fill="white", font_size=16, 
+                         font_weight="800", font_family="'Inter', system-ui, sans-serif", text_anchor="middle", 
+                         letter_spacing=2, filter="url(#textGlow)"))
 
         # Calculate percentages
         total = sum([c for l, c in langs])
         if total == 0: total = 1
 
+        start_y = margin + 70
+        item_spacing = 40
         for i, (lang, count) in enumerate(langs):
-            y = margin + header_height + (i * item_spacing)
+            y = start_y + (i * item_spacing)
             pct = (count / total) * 100
             
             # Label
-            dwg.add(dwg.text(lang, insert=(40, y), fill=text_col, font_size=16, font_family="Segoe UI, sans-serif"))
+            dwg.add(dwg.text(lang, insert=(35, y), fill=text_col, font_size=12, font_family="'Inter', sans-serif"))
             
-            # Percentage Text
-            dwg.add(dwg.text(f"{pct:.1f}%", insert=(width - 40, y), fill=text_col, font_size=16, font_family="Segoe UI, sans-serif", text_anchor="end"))
+            # Percentage
+            dwg.add(dwg.text(f"{pct:.1f}%", insert=(width - 35, y), fill=text_col, font_size=12, 
+                             font_family="Verdana, sans-serif", text_anchor="end", opacity=0.8))
             
             # Bar Background
-            bar_y = y + 10
-            bar_width = width - 80
-            dwg.add(dwg.rect(insert=(40, bar_y), size=(bar_width, 6), rx=3, ry=3, fill="white", opacity=0.1))
+            bar_y = y + 8
+            bar_w = width - 70
+            dwg.add(dwg.rect(insert=(35, bar_y), size=(bar_w, 6), rx=3, ry=3, fill="white", opacity=0.08))
             
             # Bar Fill
-            fill_width = (pct / 100) * bar_width
-            dwg.add(dwg.rect(insert=(40, bar_y), size=(fill_width, 6), rx=3, ry=3, fill=title_col))
+            fill_w = (pct / 100) * bar_w
+            dwg.add(dwg.rect(insert=(35, bar_y), size=(fill_w, 6), rx=3, ry=3, fill=title_col, opacity=0.8))
+            # Subtle Highlight on Bar
+            dwg.add(dwg.rect(insert=(35, bar_y + 1), size=(fill_w, 2), rx=1, ry=1, fill="white", opacity=0.2))
 
     else:
         # DEFAULT / OTHER THEMES

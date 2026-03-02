@@ -181,57 +181,105 @@ def draw_stats_card(data, theme_name="Default", show_options=None, custom_colors
                         stroke="#00ffff", stroke_width=2, fill="none", opacity=0.5))
         dwg.add(dwg.path(d=f"M {width-10} 10 L {width-10} {10+bracket_size} M {width-10} 10 L {width-10-bracket_size} 10", 
                         stroke="#00ffff", stroke_width=2, fill="none", opacity=0.5))
-    elif theme_name == "Cricket":
-        # Stadium lights
-        for i in range(2):
-            light_x = 60 + i * (width - 120)
-            light_y = 25
-            # Light glow
-            dwg.add(dwg.circle(center=(light_x, light_y), r=5, fill="#ffeb3b", opacity=0.7))
-            dwg.add(dwg.circle(center=(light_x, light_y), r=8, fill="#ffeb3b", opacity=0.3))
+    elif theme_name == "Glass":
+        # Neon Liquid Glassmorphism Theme (Enhanced)
         
-        # Cricket bat
-        bat_x = width - 60
-        bat_y = height - 40
-        # Handle
-        dwg.add(dwg.rect(insert=(bat_x, bat_y - 20), size=(4, 20), fill="#8b4513", rx=1))
-        # Blade
-        dwg.add(dwg.rect(insert=(bat_x - 6, bat_y), size=(16, 30), fill="#d2691e", rx=2))
-        # Grip lines
-        for i in range(3):
-            grip_y = bat_y - 17 + i * 5
-            dwg.add(dwg.line(start=(bat_x, grip_y), end=(bat_x + 4, grip_y), 
-                           stroke="#000000", stroke_width=0.8))
+        # Theme Variables
+        bg_col = theme.get("bg_color", "#050511")
+        title_col = theme.get("title_color", "#00e5ff")
+        text_col = theme.get("text_color", "#e2e8f0")
+        border_col = theme.get("border_color", "white")
         
-        # Cricket ball (red)
-        ball_x = bat_x + 30
-        ball_y = bat_y + 10
-        dwg.add(dwg.circle(center=(ball_x, ball_y), r=6, fill="#cc0000"))
-        # Seam
-        dwg.add(dwg.path(
-            d=f"M {ball_x - 2} {ball_x - 6} Q {ball_x} {ball_y - 4} {ball_x + 2} {ball_y - 6}",
-            fill="none", stroke="#ffffff", stroke_width=1
-        ))
+        # 1. Definitions
+        # Blur filter for background blobs
+        blob_blur = dwg.filter(id="blobBlur", x="-50%", y="-50%", width="200%", height="200%")
+        blob_blur.feGaussianBlur(in_="SourceGraphic", stdDeviation=40)
+        dwg.defs.add(blob_blur)
         
-        # Mini wickets
-        wicket_x = 25
-        wicket_y = height - 35
-        for i in range(3):
-            stump_x = wicket_x + i * 3
-            dwg.add(dwg.rect(insert=(stump_x, wicket_y), size=(2, 20), fill="#f5deb3"))
-        # Bails
-        dwg.add(dwg.rect(insert=(wicket_x - 1, wicket_y - 2), size=(9, 2), fill="#8b4513", rx=1))
+        # Glow filter for text
+        text_glow = dwg.filter(id="textGlow")
+        text_glow.feGaussianBlur(in_="SourceAlpha", stdDeviation=2, result="blur")
+        text_glow.feOffset(in_="blur", dx=0, dy=0, result="offsetBlur")
+        text_glow.feFlood(flood_color=title_col, result="glowColor")
+        text_glow.feComposite(in_="glowColor", in2="offsetBlur", operator="in", result="coloredBlur")
+        text_glow.feMerge(["coloredBlur", "SourceGraphic"])
+        dwg.defs.add(text_glow)
         
-        # Boundary rope decoration
-        rope_y = height - 15
-        for i in range(10):
-            rope_x = 30 + i * 40
-            if rope_x < width - 100:
-                dwg.add(dwg.circle(center=(rope_x, rope_y), r=2, fill="#ffffff", opacity=0.5))
+        # Glass Panel Gradient
+        glass_grad = dwg.linearGradient(start=(0, 0), end=(1, 1), id="glassGrad")
+        glass_grad.add_stop_color(0, "white", opacity=0.15)
+        glass_grad.add_stop_color(1, "white", opacity=0.05)
+        dwg.defs.add(glass_grad)
         
-        # Score number display
-        dwg.add(dwg.text("6", insert=(width - 25, 30), font_size="20px", 
-                        fill="#ffd700", font_weight="bold", opacity=0.6))
+        # Border Gradient
+        border_grad = dwg.linearGradient(start=(0, 0), end=(1, 1), id="borderGrad")
+        border_grad.add_stop_color(0, border_col, opacity=0.4)
+        border_grad.add_stop_color(1, border_col, opacity=0.1)
+        dwg.defs.add(border_grad)
+
+        # Background Base
+        dwg.add(dwg.rect(insert=(0, 0), size=("100%", "100%"), rx=16, ry=16, fill=bg_col))
+
+        # Neon Blobs
+        dwg.add(dwg.circle(center=(0, 0), r=120, fill="#ff00ff", filter="url(#blobBlur)", opacity=0.5))
+        dwg.add(dwg.circle(center=(width, height), r=140, fill="#00ffff", filter="url(#blobBlur)", opacity=0.4))
+
+        # 2. Glass Panel
+        margin = 15
+        p_width = width - margin * 2
+        p_height = height - margin * 2
+        dwg.add(dwg.rect(insert=(margin, margin), size=(p_width, p_height), rx=16, ry=16, fill="#000000", opacity=0.3))
+        dwg.add(dwg.rect(insert=(margin, margin), size=(p_width, p_height), rx=16, ry=16, 
+                         fill="url(#glassGrad)", stroke="url(#borderGrad)", stroke_width=1.2))
+        
+        # Top Reflection
+        reflection_grad = dwg.linearGradient(start=(0, 0), end=(0, 1), id="reflGrad")
+        reflection_grad.add_stop_color(0, "white", opacity=0.08)
+        reflection_grad.add_stop_color(1, "white", opacity=0)
+        dwg.defs.add(reflection_grad)
+        dwg.add(dwg.rect(insert=(margin + 4, margin + 4), size=(p_width - 8, p_height / 4), rx=12, ry=12, fill="url(#reflGrad)"))
+
+        # 3. Content Title
+        title_text = f"{data['username']}'s Stats".upper()
+        # Dynamic font size for title
+        base_f = 16
+        n_len = len(title_text)
+        d_font_size = max(11, base_f - (n_len - 15) // 1.5) if n_len > 15 else base_f
+        
+        dwg.add(dwg.text(title_text, insert=(width/2, margin + 35), fill="white", font_size=d_font_size, 
+                         font_weight="800", font_family="'Inter', system-ui, sans-serif", text_anchor="middle", 
+                         letter_spacing=2, filter="url(#textGlow)"))
+        
+        # Adjust start_y for stats
+        start_y = margin + 65
+        item_height = 25
+        current_y = start_y
+        
+        stats_map = [
+            ("stars", "Total Stars", f"{data.get('total_stars', 0)}", data.get('total_stars', 0)),
+            ("commits", "Total Commits", f"{data.get('total_commits', 0)}", data.get('total_commits', 0)),
+            ("repos", "Public Repos", f"{data.get('public_repos', 0)}", data.get('public_repos', 0)),
+            ("followers", "Followers", f"{data.get('followers', 0)}", data.get('followers', 0))
+        ]
+        
+        for idx, (key, label, display_value, numeric_value) in enumerate(stats_map):
+            if show_options.get(key, True):
+                # Row line (subtle)
+                dwg.add(dwg.line(start=(margin + 20, current_y + 8), end=(width - margin - 20, current_y + 8), 
+                                stroke="white", opacity=0.04))
+                
+                # Label
+                dwg.add(dwg.text(f"{label}:", insert=(margin + 25, current_y), fill=text_col, 
+                                 font_size=11, font_family="'Inter', sans-serif", opacity=0.8))
+                
+                # Value
+                dwg.add(dwg.text(f"{display_value}", insert=(width - margin - 25, current_y), fill="white", 
+                                 font_size=11, font_family="'Inter', sans-serif", text_anchor="end", font_weight="bold"))
+                
+                current_y += item_height
+        
+        return dwg.tostring()
+    
     
     # Title
     font_family = theme["font_family"]

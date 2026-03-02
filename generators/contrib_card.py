@@ -743,17 +743,35 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
         panel_width = width - margin * 2
         panel_height = height - margin * 2
         
-        dwg.add(dwg.rect(insert=(margin, margin), size=(panel_width, panel_height), rx=16, ry=16, fill="#000000", opacity=0.2))
+        dwg.add(dwg.rect(insert=(margin, margin), size=(panel_width, panel_height), rx=16, ry=16, fill="#000000", opacity=0.3))
         dwg.add(dwg.rect(insert=(margin, margin), size=(panel_width, panel_height), rx=16, ry=16, 
-                         fill="url(#glassGrad)", stroke="url(#borderGrad)", stroke_width=1.5))
+                         fill="url(#glassGrad)", stroke="url(#borderGrad)", stroke_width=1.2))
+        
+        # More subtle Top Reflection
+        reflection_grad = dwg.linearGradient(start=(0, 0), end=(0, 1), id="reflGrad")
+        reflection_grad.add_stop_color(0, "white", opacity=0.08)
+        reflection_grad.add_stop_color(1, "white", opacity=0)
+        dwg.defs.add(reflection_grad)
+        dwg.add(dwg.rect(insert=(margin + 4, margin + 4), size=(panel_width - 8, panel_height / 4), rx=12, ry=12, fill="url(#reflGrad)"))
 
         # --- 5. Content ---
-        dwg.add(dwg.text(title.upper(), insert=(width/2, margin + 40), fill="white", font_size=20,
-                         font_family="Verdana, sans-serif", font_weight="bold", text_anchor="middle",
-                         letter_spacing=4, filter="url(#textGlow)"))
+        # More elegant typography
+        base_title_size = 18
+        name_len = len(title)
         
-        dwg.add(dwg.text("NEON LIQUID", insert=(width/2, margin + 60), fill=text_col, font_size=10,
-                         font_family="Verdana, sans-serif", letter_spacing=2, text_anchor="middle", opacity=0.8))
+        # Scale font size more gracefully
+        if name_len > 20:
+            dynamic_font_size = max(11, base_title_size - (name_len - 20) // 1.5)
+        else:
+            dynamic_font_size = base_title_size
+
+        # Use a more modern looking font stack and thinner weight for elegance
+        dwg.add(dwg.text(title.upper(), insert=(width/2, margin + 38), fill="white", font_size=dynamic_font_size,
+                         font_family="'Inter', system-ui, sans-serif", font_weight="800", text_anchor="middle",
+                         letter_spacing=2, filter="url(#textGlow)"))
+        
+        dwg.add(dwg.text("GEOM-LIQUID INTERFACE", insert=(width/2, margin + 55), fill=text_col, font_size=8,
+                         font_family="'Inter', sans-serif", letter_spacing=4, text_anchor="middle", opacity=0.6))
 
         # --- 6. Contributions Grid (Bubbles) ---
         contributions_subset = contributions[-119:]  # Fit ~17 weeks
@@ -775,8 +793,9 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
             r = 6
             if count > 0:
                 intensity = min(count / 10, 1)
-                dwg.add(dwg.circle(center=(cx, cy), r=r, fill=title_col, opacity=0.3 + intensity * 0.5))
-                dwg.add(dwg.circle(center=(cx - r * 0.3, cy - r * 0.4), r=r * 0.45, fill="#ffffff", fill_opacity=0.35))
+                # Bubble with gradient-like look (inner white circle for highlight)
+                dwg.add(dwg.circle(center=(cx, cy), r=r, fill=title_col, opacity=0.4 + intensity * 0.5))
+                dwg.add(dwg.circle(center=(cx - r * 0.3, cy - r * 0.4), r=r * 0.4, fill="#ffffff", opacity=0.5))
             else:
                 dwg.add(dwg.circle(center=(cx, cy), r=r, fill="#ffffff", opacity=0.1))
     elif original_theme_name == "Neural":
