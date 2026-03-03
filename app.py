@@ -131,12 +131,15 @@ with st.sidebar:
     # Animation toggle
     animations_enabled = st.checkbox("Enable Animations", value=False, help="Enable SVG animations for cards that support it")
     
+    # Output format selector
+    output_format = st.radio("Output Format", ["Markdown", "HTML"], index=0, help="Choose between Markdown or HTML code format")
+    
     if st.button("Refresh Data", use_container_width=True):
 
         st.cache_data.clear()
         st.rerun()
         
-    st.info("💡 Tip: Use the 'Badges' tab to add your tech stack icons!")
+    st.info("💡 Tip: Use the 'Icons & Badges' tab to add your tech stack icons!")
 
 # Data Loading
 @st.cache_data(ttl=3600)  # Cache for 1 hour
