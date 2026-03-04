@@ -1,5 +1,8 @@
 import requests
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     from dotenv import load_dotenv
@@ -202,8 +205,9 @@ def get_live_github_data(username, token=None):
                 data["contributions"] = contributions
                 data["total_commits"] = gql_total_commits
                 data["contribution_weeks"] = contribution_weeks
-            except Exception:
-                pass  # Never break REST fallback
+            except Exception as e:
+                logger.warning(f"GraphQL failed for {username}: {e}, falling back to REST")
+                data['data_source'] = 'rest_fallback'
 
         if "contributions" not in data:
             # Fallback to empty list; UI should handle missing contribution data gracefully.

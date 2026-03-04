@@ -35,7 +35,9 @@ def draw_trophy_card(data, theme_name="Default", custom_colors=None):
     else:
         repo_tier, tier_color = "Newcomer", "#CD7F32"
     
-    dwg, theme = create_svg_base(theme_name, custom_colors, width, height, f"{data['username']}'s Trophy")
+    # Validate username to prevent KeyError
+    username = data.get('username', 'Unknown')
+    dwg, theme = create_svg_base(theme_name, custom_colors, width, height, f"{username}'s Trophy")
     
     font_family = theme["font_family"]
     text_color = theme["text_color"]
