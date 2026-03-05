@@ -48,6 +48,7 @@ async def get_stats(
     hide_commits: bool = False,
     hide_repos: bool = False,
     hide_followers: bool = False,
+    animations_enabled: bool = True,
     bg_color: Optional[str] = None,
     title_color: Optional[str] = None,
     text_color: Optional[str] = None,
@@ -74,6 +75,7 @@ async def get_languages(
     username: str,
     theme: str = "Default",
     exclude: Optional[str] = None,
+    excluded_languages: Optional[str] = None,
     bg_color: Optional[str] = None,
     title_color: Optional[str] = None,
     text_color: Optional[str] = None,
@@ -83,11 +85,13 @@ async def get_languages(
     custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
     
     # Parse exclude parameter into list of languages
-    excluded_languages = []
-    if exclude:
-        excluded_languages = [lang.strip() for lang in exclude.split(',') if lang.strip()]
+    excluded_languages_list = []
+    # Support both 'exclude' and 'excluded_languages' parameters
+    param_value = exclude or excluded_languages
+    if param_value:
+        excluded_languages_list = [lang.strip() for lang in param_value.split(',') if lang.strip()]
     
-    svg_content = lang_card.draw_lang_card(data, theme, custom_colors=custom_colors, excluded_languages=excluded_languages)
+    svg_content = lang_card.draw_lang_card(data, theme, custom_colors=custom_colors, excluded_languages=excluded_languages_list)
     return svg_response(svg_content , request)
 
 
@@ -96,6 +100,8 @@ async def get_contributions(
     request: Request,
     username: str,
     theme: str = "Default",
+    animations_enabled: bool = True,
+    date_range: Optional[str] = None,
     bg_color: Optional[str] = None,
     title_color: Optional[str] = None,
     text_color: Optional[str] = None,
