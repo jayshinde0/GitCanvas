@@ -70,7 +70,19 @@ def draw_stats_card(data, theme_name="Default", show_options=None, custom_colors
     base_height = 50
     item_height = 25
     visible_items = sum(1 for k, v in show_options.items() if v)
-    height = base_height + (visible_items * item_height) + 10
+    
+    is_glass = False
+    if isinstance(theme_name, dict):
+        is_glass = theme_name.get("name") == "Glass" or theme.get("name") == "Glass"
+    else:
+        is_glass = theme_name == "Glass"
+        
+    if is_glass:
+        margin = 15
+        p_height = 65 + (visible_items * item_height) + 10
+        height = margin * 2 + p_height
+    else:
+        height = base_height + (visible_items * item_height) + 10
     
     dwg = svgwrite.Drawing(size=("100%", "100%"), viewBox=f"0 0 {width} {height}")
     

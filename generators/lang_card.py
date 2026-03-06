@@ -50,10 +50,23 @@ def draw_lang_card(data, theme_name="Default", custom_colors=None, excluded_lang
 
     item_height = 35
     header_height = 40
-    height = header_height + (len(langs) * item_height) + 10
+    
+    is_glass = False
+    if isinstance(theme_name, dict):
+        is_glass = theme_name.get("name") == "Glass" or theme.get("name") == "Glass"
+    else:
+        is_glass = theme_name == "Glass"
+
+    if is_glass:
+        margin = 15
+        item_spacing = 40
+        p_height = 70 + (len(langs) * item_spacing) + 15
+        height = margin * 2 + p_height
+    else:
+        height = header_height + (len(langs) * item_height) + 10
 
     
-    if theme_name == "Glass":
+    if is_glass:
         # Neon Liquid Glassmorphism Theme (Enhanced)
         
         # Theme Variables

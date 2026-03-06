@@ -1,4 +1,4 @@
-﻿import math
+import math
 import svgwrite
 import random
 from themes.styles import THEMES
@@ -700,6 +700,10 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
         title_col = theme.get("title_color", "#00e5ff")
         text_col = theme.get("text_color", "#e0e0e0")
         border_col = theme.get("border_color", "white")
+
+        # Basic stats to make the card feel more like a dashboard
+        total_commits = data.get("total_commits", sum(d.get("count", 0) for d in contributions))
+        active_days = sum(1 for d in contributions if d.get("count", 0) > 0)
         
         # --- 1. Defining Filters & Gradients ---
         
@@ -729,6 +733,10 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
         border_grad.add_stop_color(1, border_col, opacity=0.1)
         dwg.defs.add(border_grad)
 
+        # Attach shared CSS animations for a more interactive feel
+        if animations_enabled:
+            dwg.defs.add(dwg.style(CSS_ANIMATIONS))
+
         # --- 2. Background Base ---
         dwg.add(dwg.rect(insert=(0, 0), size=("100%", "100%"), rx=16, ry=16, fill=bg_col))
 
@@ -744,8 +752,18 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
         panel_height = height - margin * 2
         
         dwg.add(dwg.rect(insert=(margin, margin), size=(panel_width, panel_height), rx=16, ry=16, fill="#000000", opacity=0.3))
-        dwg.add(dwg.rect(insert=(margin, margin), size=(panel_width, panel_height), rx=16, ry=16, 
-                         fill="url(#glassGrad)", stroke="url(#borderGrad)", stroke_width=1.2))
+        panel_rect = dwg.rect(
+            insert=(margin, margin),
+            size=(panel_width, panel_height),
+            rx=16,
+            ry=16,
+            fill="url(#glassGrad)",
+            stroke="url(#borderGrad)",
+            stroke_width=1.2,
+        )
+        if animations_enabled:
+            panel_rect["class"] = "anim-border-pulse"
+        dwg.add(panel_rect)
         
         # More subtle Top Reflection
         reflection_grad = dwg.linearGradient(start=(0, 0), end=(0, 1), id="reflGrad")
@@ -766,38 +784,113 @@ def draw_contrib_card(data, theme_name="Default", custom_colors=None, date_range
             dynamic_font_size = base_title_size
 
         # Use a more modern looking font stack and thinner weight for elegance
-        dwg.add(dwg.text(title.upper(), insert=(width/2, margin + 38), fill="white", font_size=dynamic_font_size,
-                         font_family="'Inter', system-ui, sans-serif", font_weight="800", text_anchor="middle",
-                         letter_spacing=2, filter="url(#textGlow)"))
+        title_text = dwg.text(
+            title.upper(),
+            insert=(width / 2, margin + 38),
+            fill="white",
+            font_size=dynamic_font_size,
+            font_family="'Inter', system-ui, sans-serif",
+            font_weight="800",
+            text_anchor="middle",
+            letter_spacing=2,
+            filter="url(#textGlow)",
+        )
+        if animations_enabled:
+            title_text["class"] = "anim-fade-in"
+        dwg.add(title_text)
         
-        dwg.add(dwg.text("GEOM-LIQUID INTERFACE", insert=(width/2, margin + 55), fill=text_col, font_size=8,
-                         font_family="'Inter', sans-serif", letter_spacing=4, text_anchor="middle", opacity=0.6))
+        subtitle = dwg.text(
+            "GEOM-LIQUID INTERFACE",
+            insert=(width / 2, margin + 55),
+            fill=text_col,
+            font_size=8,
+            font_family="'Inter', sans-serif",
+            letter_spacing=4,
+            text_anchor="middle",
+            opacity=0.6,
+        )
+        if animations_enabled:
+            subtitle["class"] = "anim-slide-up"
+        dwg.add(subtitle)
 
-        # --- 6. Contributions Grid (Bubbles) ---
-        contributions_subset = contributions[-119:]  # Fit ~17 weeks
-        grid_cols = 17 
+        # --- 6. Contributions Grid (Bubbles) - kept inside surrounding box ---
+        contributions_subset = contributions[-119:]  # Fit 17 cols x 7 rows
+        grid_cols = 17
         grid_rows = 7
         
-        start_x = (width - grid_cols * 22) / 2 + 10
-        start_y = margin + 80
+        # Panel content area: below subtitle, with comfortable padding from panel edges
+        grid_area_top = margin + 60
+        grid_area_bottom = height - margin - 20
+        grid_area_height = grid_area_bottom - grid_area_top
+        # Size grid so 7 rows fit inside panel; circles stay in surrounding box
+        step_y = grid_area_height / grid_rows
+        step_x = (panel_width - 30) / (grid_cols - 1)  # 15px margin each side
+        step_x = min(step_x, 26)
+        cell_size = min(step_x, step_y) * 0.8
+        radius = max(2, min(cell_size / 2, 5))
+        # Center grid in panel
+        grid_total_width = (grid_cols - 1) * step_x
+        grid_total_height = (grid_rows - 1) * step_y
+        start_x = margin + (panel_width - grid_total_width) / 2
+        start_y = grid_area_top + (grid_area_height - grid_total_height) / 2
+        
+        # Clip path so contribution circles stay inside the glass panel
+        clip_id = "glassPanelClip"
+        clip = dwg.defs.add(dwg.clipPath(id=clip_id))
+        clip.add(dwg.rect(insert=(margin, margin), size=(panel_width, panel_height), rx=16, ry=16))
+        grid_group = dwg.g(clip_path=f"url(#{clip_id})")
         
         for i, day in enumerate(contributions_subset):
             col = i // grid_rows
             row = i % grid_rows
             
-            cx = start_x + col * 22
-            cy = start_y + row * 22
+            cx = start_x + col * step_x
+            cy = start_y + row * step_y
             
             count = day.get("count", 0)
             
-            r = 6
+            r = radius
             if count > 0:
                 intensity = min(count / 10, 1)
-                # Bubble with gradient-like look (inner white circle for highlight)
-                dwg.add(dwg.circle(center=(cx, cy), r=r, fill=title_col, opacity=0.4 + intensity * 0.5))
-                dwg.add(dwg.circle(center=(cx - r * 0.3, cy - r * 0.4), r=r * 0.4, fill="#ffffff", opacity=0.5))
+                bubble = dwg.circle(
+                    center=(cx, cy),
+                    r=r,
+                    fill=title_col,
+                    opacity=0.4 + intensity * 0.5,
+                )
+                highlight = dwg.circle(
+                    center=(cx - r * 0.3, cy - r * 0.4),
+                    r=r * 0.4,
+                    fill="#ffffff",
+                    opacity=0.5,
+                )
+
+                if animations_enabled:
+                    classes = ["anim-bubble"]
+                    if intensity >= 0.7:
+                        classes.append("anim-pulse-glow")
+                    delay = 0.02 * col + 0.01 * row
+                    bubble["class"] = " ".join(classes)
+                    bubble["style"] = f"animation-delay: {delay:.2f}s"
+                    highlight["class"] = " ".join(classes)
+                    highlight["style"] = f"animation-delay: {delay:.2f}s"
+
+                grid_group.add(bubble)
+                grid_group.add(highlight)
             else:
-                dwg.add(dwg.circle(center=(cx, cy), r=r, fill="#ffffff", opacity=0.1))
+                bubble = dwg.circle(
+                    center=(cx, cy),
+                    r=r,
+                    fill="#ffffff",
+                    opacity=0.12,
+                )
+                if animations_enabled:
+                    delay = 0.02 * col + 0.01 * row
+                    bubble["class"] = "anim-bubble"
+                    bubble["style"] = f"animation-delay: {delay:.2f}s"
+                grid_group.add(bubble)
+        
+        dwg.add(grid_group)
     elif original_theme_name == "Neural":
         cx = width / 2
         cy = height / 2 + 10
