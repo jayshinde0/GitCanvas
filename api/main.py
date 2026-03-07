@@ -2,6 +2,14 @@ import hashlib
 from fastapi import FastAPI, Response, Query, Request
 from generators import stats_card, lang_card, contrib_card, recent_activity_card, trophy_card, streak_card, repo_card
 from utils import github_api
+from utils.validators import (
+    validate_username,
+    validate_theme,
+    validate_hex_color,
+    validate_sort_by,
+    validate_limit,
+    validate_date
+)
 from typing import Optional
 
 app = FastAPI()
@@ -20,7 +28,11 @@ def svg_response(svg_content: str, request: Request):
         headers={
             "Cache-Control": "public, max-age=14400, s-maxage=14400",
             "ETag": etag,
-            "Vary": "Accept-Encoding"
+            "Vary": "Accept-Encoding",
+            # Security headers to prevent XSS
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "SAMEORIGIN"
         }
     )
 
@@ -31,12 +43,30 @@ def read_root():
     return {"message": "GitCanvas API is running"}
 
 def parse_colors(bg_color, title_color, text_color, border_color):
-    """Helper to construct custom color dict only if values are provided."""
+    """Helper to construct custom color dict with validation."""
     colors = {}
-    if bg_color: colors["bg_color"] = f"#{bg_color}" if not bg_color.startswith("#") else bg_color
-    if title_color: colors["title_color"] = f"#{title_color}" if not title_color.startswith("#") else title_color
-    if text_color: colors["text_color"] = f"#{text_color}" if not text_color.startswith("#") else text_color
-    if border_color: colors["border_color"] = f"#{border_color}" if not border_color.startswith("#") else border_color
+    
+    # Validate and add colors
+    if bg_color:
+        validated_bg = validate_hex_color(bg_color)
+        if validated_bg:
+            colors["bg_color"] = validated_bg
+            
+    if title_color:
+        validated_title = validate_hex_color(title_color)
+        if validated_title:
+            colors["title_color"] = validated_title
+            
+    if text_color:
+        validated_text = validate_hex_color(text_color)
+        if validated_text:
+            colors["text_color"] = validated_text
+            
+    if border_color:
+        validated_border = validate_hex_color(border_color)
+        if validated_border:
+            colors["border_color"] = validated_border
+    
     return colors if colors else None
 
 @app.get("/api/stats")
@@ -55,6 +85,10 @@ async def get_stats(
     border_color: Optional[str] = None,
     animations_enabled: bool = True
 ):
+    # Validate inputs
+    username = validate_username(username)
+    theme = validate_theme(theme)
+    
     data = github_api.get_live_github_data(username) or github_api.get_mock_data(username)
     
     show_options = {
@@ -81,6 +115,10 @@ async def get_languages(
     text_color: Optional[str] = None,
     border_color: Optional[str] = None
 ):
+    # Validate inputs
+    username = validate_username(username)
+    theme = validate_theme(theme)
+    
     data = github_api.get_live_github_data(username) or github_api.get_mock_data(username)
     custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
     
@@ -110,6 +148,12 @@ async def get_contributions(
     end_date: Optional[str] = None,
     animations_enabled: bool = True
 ):
+    # Validate inputs
+    username = validate_username(username)
+    theme = validate_theme(theme)
+    start_date = validate_date(start_date)
+    end_date = validate_date(end_date)
+    
     data = github_api.get_live_github_data(username) or github_api.get_mock_data(username)
     custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
     
@@ -136,10 +180,9 @@ async def get_recent(
     text_color: Optional[str] = None,
     border_color: Optional[str] = None
 ):
-    # Note: recent_activity_card fetches its own data internally via GitHub API
-    # It just needs the username. github_api.get_live_github_data is not strictly needed 
-    # unless we want to use shared logic or mock data fallback, 
-    # but recent_activity_card.draw_recent_activity_card takes `{'username': ...}`.
+    # Validate inputs
+    username = validate_username(username)
+    theme = validate_theme(theme)
     
     custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
     svg_content = recent_activity_card.draw_recent_activity_card({'username': username}, theme, custom_colors=custom_colors, token=token)
@@ -156,6 +199,10 @@ async def get_trophy(
     text_color: Optional[str] = None,
     border_color: Optional[str] = None
 ):
+    # Validate inputs
+    username = validate_username(username)
+    theme = validate_theme(theme)
+    
     data = github_api.get_live_github_data(username) or github_api.get_mock_data(username)
     custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
     svg_content = trophy_card.draw_trophy_card(data, theme, custom_colors=custom_colors)
@@ -172,6 +219,10 @@ async def get_streak(
     text_color: Optional[str] = None,
     border_color: Optional[str] = None
 ):
+    # Validate inputs
+    username = validate_username(username)
+    theme = validate_theme(theme)
+    
     data = github_api.get_live_github_data(username) or github_api.get_mock_data(username)
     custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
     svg_content = streak_card.draw_streak_card(data, theme, custom_colors=custom_colors)
@@ -190,6 +241,12 @@ async def get_repos(
     text_color: Optional[str] = None,
     border_color: Optional[str] = None
 ):
+    # Validate inputs
+    username = validate_username(username)
+    theme = validate_theme(theme)
+    sort_by = validate_sort_by(sort_by)
+    limit = validate_limit(limit, min_val=1, max_val=10)
+    
     data = github_api.get_live_github_data(username) or github_api.get_mock_data(username)
     custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
     svg_content = repo_card.draw_repo_card(data, theme, custom_colors=custom_colors, sort_by=sort_by, limit=limit)
