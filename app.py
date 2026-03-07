@@ -217,30 +217,77 @@ def render_tab(svg_bytes, endpoint, username, selected_theme, custom_colors, hid
         b64 = base64.b64encode(svg_bytes.encode('utf-8')).decode("utf-8")
         st.markdown(f'<img src="data:image/svg+xml;base64,{b64}" style="max-width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border-radius: 10px;"/>', unsafe_allow_html=True)
 
+        # --- SVG Download ---
         st.download_button(
-            label="Download SVG",
+            label="⬇️ Download SVG",
             data=svg_bytes.encode("utf-8"),
             file_name=f"{endpoint}_{username}.svg",
             mime="image/svg+xml",
             use_container_width=True
         )
 
-        png_bytes = None
-        try:
-            import cairosvg  # Local import to avoid startup crash if cairo libs are missing.
-            png_bytes = cairosvg.svg2png(bytestring=svg_bytes.encode("utf-8"))
-        except Exception:
-            png_bytes = None
+        # --- PNG & JPEG Download via browser Canvas (no system dependencies) ---
+        svg_b64 = base64.b64encode(svg_bytes.encode("utf-8")).decode("utf-8")
+        filename_prefix = f"{endpoint}_{username}"
+        components.html(f"""
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+            <button onclick="downloadSVGAs('png')" style="
+                width:100%; padding:8px; font-size:14px; cursor:pointer;
+                background:#1a1a2e; color:white; border:1px solid #444;
+                border-radius:6px;">
+                ⬇️ Download PNG
+            </button>
+            <button onclick="downloadSVGAs('jpeg')" style="
+                width:100%; padding:8px; font-size:14px; cursor:pointer;
+                background:#1a1a2e; color:white; border:1px solid #444;
+                border-radius:6px;">
+                ⬇️ Download JPEG
+            </button>
+        </div>
+        <script>
+        function downloadSVGAs(format) {{
+            const svgText = atob('{svg_b64}');
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+            const svgEl = svgDoc.documentElement;
 
-        if png_bytes:
-            # Download PNG button
-            st.download_button(
-                label="Download PNG",
-                data=png_bytes,
-                file_name=f"{endpoint}_{username}.png",
-                mime="image/png",
-                use_container_width=True
-            )
+            // Get dimensions from width/height or viewBox
+            let w = parseInt(svgEl.getAttribute('width')) || 0;
+            let h = parseInt(svgEl.getAttribute('height')) || 0;
+            if (!w || !h) {{
+                const vb = svgEl.getAttribute('viewBox');
+                if (vb) {{
+                    const parts = vb.split(/[\s,]+/);
+                    w = parseFloat(parts[2]) || 800;
+                    h = parseFloat(parts[3]) || 400;
+                }} else {{
+                    w = 800; h = 400;
+                }}
+            }}
+
+            const blob = new Blob([svgText], {{type: 'image/svg+xml'}});
+            const url = URL.createObjectURL(blob);
+            const img = new Image();
+            img.onload = function() {{
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                if (format === 'jpeg') {{
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, w, h);
+                }}
+                ctx.drawImage(img, 0, 0, w, h);
+                const link = document.createElement('a');
+                link.download = '{filename_prefix}.' + (format === 'jpeg' ? 'jpg' : 'png');
+                link.href = canvas.toDataURL('image/' + format, 0.95);
+                link.click();
+                URL.revokeObjectURL(url);
+            }};
+            img.src = url;
+        }}
+        </script>
+        """, height=100)
 
     with col2:
         st.subheader("Integration")
