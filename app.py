@@ -1,6 +1,10 @@
 import streamlit as st  # type: ignore
 import base64
 import os
+import re
+
+# HEX color regex validation pattern
+HEX_COLOR_REGEX = re.compile(r'^#[0-9A-Fa-f]{6}$')
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from roast_widget_streamlit import render_roast_widget
@@ -83,6 +87,12 @@ with st.sidebar:
         
         # Use theme-specific keys so each theme maintains its own customization
         custom_bg = st.color_picker("Background", value=get_col("bg_color"), key=f"customize_bg_{selected_theme}")
+        
+        # Validate HEX color format
+        if not HEX_COLOR_REGEX.match(custom_bg):
+            st.error("Invalid color format")
+            custom_bg = get_col("bg_color")
+        
         custom_title = st.color_picker("Title Text", value=get_col("title_color"), key=f"customize_title_{selected_theme}")
         custom_text = st.color_picker("Body Text", value=get_col("text_color"), key=f"customize_text_{selected_theme}")
         custom_border = st.color_picker("Border", value=get_col("border_color"), key=f"customize_border_{selected_theme}")
