@@ -37,6 +37,29 @@ def svg_response(svg_content: str, request: Request):
     )
 
 
+def get_token_from_header(request: Request) -> Optional[str]:
+    """
+    Securely extract GitHub token from Authorization header.
+    
+    SECURITY: Tokens should NEVER be in URL parameters as they get logged in:
+    - Server access logs
+    - Browser history
+    - Proxy logs
+    - Referrer headers
+    
+    Use: Authorization: Bearer <token>
+    
+    Args:
+        request: FastAPI Request object
+        
+    Returns:
+        Token string or None if not provided
+    """
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header[7:]  # Remove "Bearer " prefix
+    return None
+
 
 @app.get("/")
 def read_root():
@@ -82,14 +105,16 @@ async def get_stats(
     bg_color: Optional[str] = None,
     title_color: Optional[str] = None,
     text_color: Optional[str] = None,
-    border_color: Optional[str] = None,
-    animations_enabled: bool = True
+    border_color: Optional[str] = None
 ):
     # Validate inputs
     username = validate_username(username)
     theme = validate_theme(theme)
     
-    data = github_api.get_live_github_data(username) or github_api.get_mock_data(username)
+    # Get optional token from Authorization header for higher rate limits
+    token = get_token_from_header(request)
+    
+    data = github_api.get_live_github_data(username, token) or github_api.get_mock_data(username)
     
     show_options = {
         "stars": not hide_stars,
@@ -145,8 +170,7 @@ async def get_contributions(
     text_color: Optional[str] = None,
     border_color: Optional[str] = None,
     start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    animations_enabled: bool = True
+    end_date: Optional[str] = None
 ):
     # Validate inputs
     username = validate_username(username)
@@ -174,7 +198,6 @@ async def get_recent(
     request: Request,
     username: str,
     theme: str = "Default",
-    token: Optional[str] = None,
     bg_color: Optional[str] = None,
     title_color: Optional[str] = None,
     text_color: Optional[str] = None,
@@ -183,6 +206,10 @@ async def get_recent(
     # Validate inputs
     username = validate_username(username)
     theme = validate_theme(theme)
+    
+    # SECURITY FIX: Get token from Authorization header instead of URL parameter
+    # This prevents token exposure in logs, browser history, and proxy logs
+    token = get_token_from_header(request)
     
     custom_colors = parse_colors(bg_color, title_color, text_color, border_color)
     svg_content = recent_activity_card.draw_recent_activity_card({'username': username}, theme, custom_colors=custom_colors, token=token)
