@@ -7,7 +7,9 @@ try:
 except Exception:
     load_dotenv = None
 
-logger = logging.getLogger(__name__)
+from utils.logger import setup_logger, log_api_call
+
+logger = setup_logger(__name__)
 
 GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
 
@@ -191,26 +193,26 @@ def get_live_github_data(username, token=None):
         # User details
         user_url = f"https://api.github.com/users/{username}"
         headers = get_github_headers(token)
-        print(f"Fetching user data for {username}, using token: {bool(token)}")
+        log_api_call("GitHub User API", user_url, has_token=bool(token))
         user_resp = requests.get(user_url, headers=headers, timeout=10)
 
         if user_resp.status_code != 200:
-            print(f"User API Error: Status {user_resp.status_code}, Response: {user_resp.text[:200]}")
+            logger.error(f"User API Error: Status {user_resp.status_code}")
             return None
         user_data = user_resp.json()
-        print(f"User data fetched successfully: {user_data.get('login', 'N/A')}")
+        logger.info(f"User data fetched successfully for {username}")
         
         # Repos for stars count (limited to first 100 public repos for basic sum without pagination for MVP speed)
         repos_url = f"https://api.github.com/users/{username}/repos?per_page=100&sort=updated"
-        print(f"Fetching repos from: {repos_url}")
+        log_api_call("GitHub Repos API", repos_url, has_token=bool(token))
         repos_resp = requests.get(repos_url, headers=headers, timeout=10)
-        print(f"Repos API Status: {repos_resp.status_code}")
+        logger.info(f"Repos API Status: {repos_resp.status_code}")
         repos_data = repos_resp.json() if repos_resp.status_code == 200 else []
         
         # Validate response is a list
         if not isinstance(repos_data, list):
             # API returned an error dict instead of list
-            print(f"Repos API Error: {repos_data}")
+            logger.warning("Repos API returned non-list response")
             repos_data = []
         
         # Store all repos including forks for frontend (let user decide)
@@ -241,7 +243,7 @@ def get_live_github_data(username, token=None):
             "is_fork": repo.get("fork", False)
         } for repo in sorted(all_repos, key=lambda x: x.get("stargazers_count", 0), reverse=True)[:10]]
         
-        print(f"Fetched {len(all_repos)} total repos ({len(repos_data_no_forks)} non-forks) for {username}, top_repos count: {len(top_repos)}")
+        logger.info(f"Fetched {len(all_repos)} total repos ({len(repos_data_no_forks)} non-forks) for {username}")
 
         # Ensure total_commits is always an integer
         total_commits = 0 
@@ -249,7 +251,7 @@ def get_live_github_data(username, token=None):
 
         try:
             contrib_url = f"https://github-contributions-api.jogruber.de/v4/{username}"
-            print(f"Fetching contributions from fallback API: {contrib_url}")
+            log_api_call("Contributions Fallback API", contrib_url)
             contrib_resp = requests.get(contrib_url, timeout=10)
             if contrib_resp.status_code == 200:
                 c_data = contrib_resp.json()
@@ -264,10 +266,10 @@ def get_live_github_data(username, token=None):
                             'date': contrib.get('date', ''),
                             'count': contrib.get('count', 0)
                         })
-                    print(f"Fetched {len(fallback_contributions)} contribution days from fallback API")
+                    logger.info(f"Fetched {len(fallback_contributions)} contribution days from fallback API")
             # If the response isn't 200, it stays as 0
         except Exception as ex:
-            print(f"Contrib API Error: {ex}")
+            logger.error(f"Contrib API Error: {ex}")
             total_commits = 0 # Safety fallback
 
         data = {
@@ -300,7 +302,7 @@ def get_live_github_data(username, token=None):
             # Use fallback contributions if GraphQL didn't work
             if fallback_contributions:
                 data["contributions"] = fallback_contributions
-                print(f"Using fallback contributions: {len(fallback_contributions)} days")
+                logger.info(f"Using fallback contributions: {len(fallback_contributions)} days")
             else:
                 # Fallback to empty list; UI should handle missing contribution data gracefully.
                 data["contributions"] = []
@@ -308,7 +310,7 @@ def get_live_github_data(username, token=None):
         # If we don't have streak data yet, try to calculate from any contributions we have
         if "streak_data" not in data and data.get("contributions"):
             data["streak_data"] = calculate_streak_data(data["contributions"])
-            print(f"Calculated streak data: current={data['streak_data']['current_streak']}, longest={data['streak_data']['longest_streak']}")
+            logger.info(f"Calculated streak data: current={data['streak_data']['current_streak']}, longest={data['streak_data']['longest_streak']}")
         
         # Final fallback for streak data
         if "streak_data" not in data:
@@ -323,8 +325,8 @@ def get_live_github_data(username, token=None):
             
     except Exception as e:
         import traceback
-        print(f"Error in get_live_github_data: {e}")
-        print(f"Traceback: {traceback.format_exc()}")
+        logger.error(f"Error in get_live_github_data: {e}")
+        logger.debug(f"Traceback: {traceback.format_exc()}")
         return None
 
 def get_mock_data(username):
